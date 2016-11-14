@@ -1,0 +1,2 @@
+# tcf-lib-js
+tcf-lib-js is a Javascript library that implements the client part of the Target Communication Framework protocol, as well as a set of wrappers for TCF open-source services. This library allows to implement a Javascript TCF client that can leverage the exposed TCF services. The library can also be augmented with other TCF services wrappers. While this library does not support serving TCF connection, It allows implementing custom TCF services running on the client side.
