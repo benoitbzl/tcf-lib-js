@@ -1,0 +1,42 @@
+{
+  "name": "tcf",
+  "version": "1.0.0",
+  "description": "Javascript TCF client layer. Used to connect an node js application to an tcf agent",
+  "main": "src/tcf.js",
+  "browser": {
+    "ws": "./src/browser-ws.js",
+    "./src/transports.js": "./src/browser-transports.js"
+  },
+  "license": "MIT",
+  "keywords": [
+    "nodejs",
+    "tcf",
+    "client"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/WindRiver-OpenSourceLabs/oss-tcf-client-js"
+  },
+  "dependencies": {
+    "atob": "^2.0.3",
+    "btoa": "^1.1.2",
+    "json-bigint": "^0.2.1",
+    "uuid": "^2.0.3",
+    "ws": "^1.1.1"
+  },
+  "devDependencies": {
+    "bower": "^1.7.7",
+    "browserify": "^13.1.0",
+    "chai": "^2.3.0",
+    "chai-as-promised": "~5.1.0",
+    "dockerode": "~2.2.2",
+    "eslint": "^3.7.1",
+    "mocha": "*",
+    "xunit-file": "^0.0.7"
+  },
+  "scripts": {
+    "postinstall": "bower install",
+    "build": "mkdir -p dist && ./node_modules/.bin/browserify src/tcf.js -s tcf -i atob -i btoa -i ./src/server.js -i ./src/channel_server_ws.js > dist/tcf.js",
+    "test": " ./node_modules/.bin/mocha --reporter spec --full-trace test/**/*.js"
+  }
+}
