@@ -28,29 +28,41 @@ module.exports = function Terminals(channel) {
     var context = new utils.TcfContextIf(c, svcName);
 
     // E • Terminals • exited • <string: terminal ID> • <int: exit code> •
-    c.addEventHandler(svcName, "exited", ['ID', 'exit_code'], listeners.notify);
+    c.addEventHandler(svcName, "exited", listeners.notify.bind(this, ['ID', 'exit_code'], "exited"));
     // E • Terminals • winSizeChanged • <string: terminal ID> • <int: newWidth> • <int: newHeight> •
-    c.addEventHandler(svcName, "winSizeChanged", ['ID', 'width', 'height'], listeners.notify);
+    c.addEventHandler(svcName, "winSizeChanged", listeners.notify.bind(this, ['ID', 'width', 'height'], "winSizeChanged"));
 
     return {
         addListener: listeners.add,
         removeListener: listeners.remove,
         getContext: context.getContext,
-        launch: function(ptyType, encoding, env, cb) {
+        launch: function(ptyType, encoding, env) {
             // C • <token> • Terminals • launch • <string: pty type> • <string: encoding> •
             //     <string array: environment variables> •
             // R • <token> • <error report> • <context data> •
-            return c.sendCommand(svcName, 'launch', [ptyType, encoding, env], ['err', 'data'], cb);
+            return c.sendCommand(svcName, 'launch', [ptyType, encoding, env])
+            .then( args => {
+                return {
+                    err: args[0],
+                    data: args[1]
+                };
+            });
         },
-        exit: function(ctxID, cb) {
+        exit: function(ctxID) {
             // C • <token> • Terminals • exit • <string: context ID> •
             // R • <token> • <error report> •
-            return c.sendCommand(svcName, 'exit', [ctxID], ['err'], cb);
+            return c.sendCommand(svcName, 'exit', [ctxID])
+            .then( args => {
+                return {err: args[0]};
+            });
         },
-        setWinSize: function(ctxID, width, height, cb) {
+        setWinSize: function(ctxID, width, height) {
             // C • <token> • Terminals • setWinSize • <string: context ID> • <integer: newWidth> • <integer: newHeight> •
             // R • <token> • <error report> •
-            return c.sendCommand(svcName, 'setWinSize', [ctxID, width, height], ['err'], cb);
+            return c.sendCommand(svcName, 'setWinSize', [ctxID, width, height])
+            .then( args => {
+                return {err: args[0]};
+            });
         }
     };
 };

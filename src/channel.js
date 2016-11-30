@@ -111,7 +111,7 @@ function Channel(protocol) {
             writeStringz(name);
             for (i = 0; i < args.length; i++) {
                 /* test binary type */
-                if (args[i].buffer && args[i].buffer instanceof ArrayBuffer) {
+                if (args[i] && args[i].buffer && args[i].buffer instanceof ArrayBuffer) {
                     writeStringz(JSONbig.stringify(btoa(args[i])));
                 }
                 else writeStringz(JSONbig.stringify(args[i]));
@@ -375,7 +375,9 @@ function Channel(protocol) {
                 eventLocatorHello();
             }
             else {
-                var eargsParsers = proto.getEventArgsParsers(msg.service, msg.name);
+                var evhandler = findEventHandler(msg.service, msg.name);
+                if (!evhandler) return skipUntilEOM();
+                var eargsParsers = evhandler.parsers; // proto.getEventArgsParsers(msg.service, msg.name);
                 var eargs = [];
                 var ev_idx = 0;
                 
@@ -388,10 +390,8 @@ function Channel(protocol) {
                 }
                 skipUntilEOM();
 
-                proto.execEventHandler(channel, svc, name, eargs)
-                .catch(function(err) {
-                    //close the channel immediatly
-                    console.log ('TCF protocol Error', err);
+                Promise.resolve(true).then(function() {
+                    evhandler.handler(eargs);
                 });
             }
         }
@@ -527,8 +527,8 @@ function Channel(protocol) {
 
     function setProtocol(protocol) {
         utils.assert(state == ChannelState.StartWait || state == ChannelState.Disconnected);
-        proto = protocol || {};
-        svcList = protocol ? proto.getServiceList() : [];
+        svcList = protocol ? protocol.getServiceList() : [];
+        proto = protocol;
     }
 
     var channel = {
@@ -572,14 +572,13 @@ function Channel(protocol) {
         getPeerServices: function() {
             return peerServices;
         },
-        addEventHandler: function(service, name, res_list, eh) {
+        addEventHandler: function(service, name, eh, parsers) {
             utils.assert(!findEventHandler(service, name));
-            utils.assert(res_list);
             eventHandlers.push({
                 service: service,
                 name: name,
-                res_list: res_list,
-                handler: eh
+                parsers: parsers || [],
+                handler: eh                
             });
         },
         getState: function() {

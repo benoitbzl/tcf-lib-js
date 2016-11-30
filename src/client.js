@@ -27,6 +27,7 @@
 
 var channel = require('./channel.js');
 var peer = require('./peer.js');
+var proto = require('./protocol.js');
 
 //===============================================================================
 // TCF services proxy definitions
@@ -52,10 +53,10 @@ exports.Client = function Client(protocol) {
     this.svc = {};
     this.attrs = undefined;
     this.queryAttrs = false;
-
     // Private variables
 
     var c;
+    var prot = protocol || new proto.Protocol();
 
     /**
      * Establishes the connection to the peer
@@ -149,7 +150,7 @@ exports.Client = function Client(protocol) {
                 }
             });
 
-            c.setProtocol(protocol);
+            c.setProtocol(prot);
 
             // Start TCF protocol negociation
 

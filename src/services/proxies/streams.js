@@ -26,32 +26,57 @@ module.exports = function Streams(channel) {
     var svcName = "Streams";
     var listeners = new utils.TcfListenerIf();
 
-    c.addEventHandler(svcName, "created", ['type', 'streamID', 'ctxID'], listeners.notify);
-    c.addEventHandler(svcName, "disposed", ['type', 'streamID'], listeners.notify);
+    c.addEventHandler(svcName, "created", listeners.notify.bind(this, ['type', 'streamID', 'ctxID'], "created"));
+    c.addEventHandler(svcName, "disposed", listeners.notify.bind(this, ['type', 'streamID'], "disposed"));
 
     return {
         addListener: listeners.add,
         removeListener: listeners.remove,
-        subscribe: function(type, cb) {
-            return c.sendCommand(svcName, 'subscribe', [type], ['err'], cb);
+        subscribe: function(type) {
+            return c.sendCommand(svcName, 'subscribe', [type])
+            .then( args => {
+                return {err: args[0]};
+            });
         },
-        unsubscribe: function(type, cb) {
-            return c.sendCommand(svcName, 'unsubscribe', [type], ['err'], cb);
+        unsubscribe: function(type) {
+            return c.sendCommand(svcName, 'unsubscribe', [type])
+            .then( args => {
+                return {err: args[0]};
+            });
         },
-        read: function(streamID, len, cb) {
-            return c.sendCommand(svcName, 'read', [streamID, len], ['data', 'err', 'lost', 'eos'], cb, [], [0]);
+        read: function(streamID, len) {
+            return c.sendCommand(svcName, 'read', [streamID, len])
+            .then( args => {
+                return {
+                    data: atob(args[0]),
+                    err: args[1],
+                    lost: args[2],
+                    eos: args[3]};
+            });
         },
-        write: function(streamID, len, data, cb) {
-            return c.sendCommand(svcName, 'write', [streamID, len, data], ['err'], cb, [2]);
+        write: function(streamID, len, data) {
+            return c.sendCommand(svcName, 'write', [streamID, len, btoa(data)])
+            .then( args => {
+                return {err: args[0]};
+            });
         },
-        eos: function(streamID, cb) {
-            return c.sendCommand(svcName, 'eos', [streamID], ['err'], cb);
+        eos: function(streamID) {
+            return c.sendCommand(svcName, 'eos', [streamID])
+            .then( args => {
+                return {err: args[0]};
+            });
         },
-        connect: function(streamID, cb) {
-            return c.sendCommand(svcName, 'connect', [streamID], ['err'], cb);
+        connect: function(streamID) {
+            return c.sendCommand(svcName, 'connect', [streamID])
+            .then( args => {
+                return {err: args[0]};
+            });
         },
-        disconnect: function(streamID, cb) {
-            return c.sendCommand(svcName, 'disconnect', [streamID], ['err'], cb);
+        disconnect: function(streamID) {
+            return c.sendCommand(svcName, 'disconnect', [streamID])
+            .then( args => {
+                return {err: args[0]};
+            });
         }
     };
 };

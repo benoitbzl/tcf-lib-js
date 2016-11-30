@@ -88,21 +88,5 @@ Protocol.prototype.getCommandArgsParsers = function (svc, cmd) {
     return this._svc[svc][cmd].parsers || [];
 };
 
-Protocol.prototype.execEventHandler = function (c, svc, ev, args) {
-    if (!this._svc[svc][ev].eh) throw "Invalid event handler";
-    
-    var res =  this._svc[svc][ev].eh(c, args);
-    if (res && res.then) return res;
-    else return Promise.resolve(res);
-};
-
-Protocol.prototype.getEventArgsParsers = function (svc, ev) {
-    return this._svc[svc][ev].parsers || [];
-};
-
-Protocol.prototype.getServiceList = function () {
-    return this._svcList;
-};
-
 exports.Protocol = Protocol;
 

@@ -35,8 +35,13 @@ exports.TcfListenerIf = function TcfListenerIf() {
                 return listeners.splice(idx, 1);
             }
         },
-        notify: function(ev) {
+        notify: function(proto, evName, args) {
             var idx;
+            var ev = {name : evName};
+            args.forEach((arg, i) => {
+                if (proto[i]) ev[proto[i]] = arg;
+            })
+
             for (idx = 0; idx < listeners.length; idx++) {
                 if (typeof listeners[idx][ev.name] != 'undefined')
                     listeners[idx][ev.name](ev);

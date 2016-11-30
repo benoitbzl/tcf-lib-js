@@ -91,5 +91,3 @@ var onConnect = function() {
 };
 
 client.connect('WS::20001', onConnect, onError, onClose);
-client2.connect('WS::20001', onConnect, onError, onClose);
-
