@@ -33,6 +33,50 @@ var proto = require('./protocol.js');
 // TCF services proxy definitions
 
 var service_proxies = require('./services/proxies.js');
+var prototypes = require('./services/schemas_svc.js').services;
+var utils = require('./services/proxies/utils.js');
+
+function Proxy(prototype, c) {
+    var self = this;
+
+    /* create helper functions */
+    prototype.cmds.forEach(cmd => {
+        var fn = function (cmd) {
+            /* transform parameter according to schema.
+             * For now we only handle binary args */
+            var args = cmd.args.map((arg, i) => {
+                if (arg.type === 'binary') return btoa(arguments[i + 1]);
+                else return arguments[i + 1];
+            });
+            return c.sendCommand(prototype.name, cmd.cmd || cmd.name, args)
+                .then( args => {
+                    /* transform parameter according to schema.
+                     * For now we only handle binary args 
+                     * We construct an object with the results (needed for compatibility */
+                    var res = {};
+                    cmd.results.forEach((result, i) => {
+                       if (result.type === 'binary') res[result.title] = atob(args[i]);
+                       else  res[result.title] = args[i];
+                    });
+                    return res;
+                });
+        }
+        this[cmd.name] = fn.bind(self, cmd);    
+    });
+
+    var listeners = new utils.TcfListenerIf();
+    this.addListener = listeners.add;
+    this.removeListener = listeners.remove;
+
+    /* if this service supports event create the event listener */
+    prototype.evs.forEach( ev => {
+        var argsName = ev.args.map( arg => {
+            return arg.title;
+        });
+        // install handler on the channel
+        c.addEventHandler(prototype.name, ev.name, listeners.notify.bind(this, argsName, ev.name));
+     });
+}
 
 /**
  * Creates a new tcf client.
@@ -75,11 +119,11 @@ exports.Client = function Client(protocol) {
         }
 
         var ps = peer.peer_from_url(url);
-        
+
         try {
             var cc = channelClient(ps, options);
         }
-        catch(error) {
+        catch (error) {
 
         }
 
@@ -96,17 +140,17 @@ exports.Client = function Client(protocol) {
             c = chan;
 
             // intercept the connection handler to initialize the services proxies.
-            c.addHandler(channel.ChannelEvent.onclose, function() {
+            c.addHandler(channel.ChannelEvent.onclose, function () {
                 // clear the proxies
                 self.svc = {};
                 if (onclose) setTimeout(onclose);
             });
 
-            c.addHandler(channel.ChannelEvent.onerror, function(err) {
+            c.addHandler(channel.ChannelEvent.onerror, function (err) {
                 if (onerror) onerror(err);
             });
 
-            c.addHandler(channel.ChannelEvent.onconnect, function() {
+            c.addHandler(channel.ChannelEvent.onconnect, function () {
                 var idx;
                 // initialize services proxies
                 var svcs = c.getPeerServices();
@@ -119,6 +163,9 @@ exports.Client = function Client(protocol) {
                     if (service_proxies[svcs[idx]]) {
                         self.svc[svcs[idx]] = new service_proxies[svcs[idx]](c);
                     }
+                    else if (prototypes[svcs[idx]]) {
+                        self.svc[svcs[idx]] = new Proxy(prototypes[svcs[idx]], c);
+                    }
                     else {
                         //console.log("WARNING: ignore unknown service " + svcs[idx]);
                     }
@@ -129,9 +176,9 @@ exports.Client = function Client(protocol) {
 
                 if (self.queryAttrs) {
                     // Get the agent ID and peer attributes before configuring the profiler
-                    self.svc.Locator.getAgentID(function(res) {
+                    self.svc.Locator.getAgentID(function (res) {
                         var agentID = res.agentID;
-                        self.svc.Locator.getPeers(function(res) {
+                        self.svc.Locator.getPeers(function (res) {
                             if (res.attrsList && agentID) {
                                 for (var i = 0; i < res.attrsList.length; i++) {
                                     var attrs = res.attrsList[i];
@@ -165,14 +212,14 @@ exports.Client = function Client(protocol) {
      * Controls zerocopy behaviour
      * @param {boolean} enable - requested state
      */
-    this.enableZeroCopy = function(enable) {
+    this.enableZeroCopy = function (enable) {
         return c && c.enableZeroCopy(enable);
     };
 
     /**
      * Closes the client communication channel
      */
-    this.close = function() {
+    this.close = function () {
         if (c && c.getState() != channel.ChannelState.Disconnected) {
             c.close();
         }
@@ -182,7 +229,7 @@ exports.Client = function Client(protocol) {
      * retreive the channel object associated with the Client
      * @return {channel}
      */
-    this.getChannel = function() {
+    this.getChannel = function () {
         return c;
     };
 
@@ -197,7 +244,7 @@ exports.Client = function Client(protocol) {
      * and fullfilled when the command response is received. Note that if the 
      * response contains a TCF error report, the promise is still fulfilled.
      */
-    this.sendCommand = function(args) {
+    this.sendCommand = function (args) {
         return c && c.sendCommand.apply(self, arguments);
     };
 
@@ -209,7 +256,7 @@ exports.Client = function Client(protocol) {
      * @param {TcfArg_t[]}  [args] - list of event arguments
      * 
      */
-    this.sendEvent = function(args) {
+    this.sendEvent = function (args) {
         return c && c.sendEvent.apply(self, arguments);
     };
 

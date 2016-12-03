@@ -19,17 +19,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+var schemas = require('../schemas.js')
+var types = schemas.types;
 
-module.exports = function LineNumbers(channel) {
-    var c = channel;
-    var svcName = "LineNumbers";
+var lines = {title: 'lines', type: 'array'};
 
-    return {
-        mapToSource: function(ctxID, addr0, addr1, cb) {
-            return c.sendCommand(svcName, 'mapToSource', [ctxID, addr0, addr1], ['err', 'lines'], cb);
-        },
-        mapToMemory: function(ctxID, file, line, column, cb) {
-            return c.sendCommand(svcName, 'mapToMemory', [ctxID, file, line, column], ['err', 'lines'], cb);
-        }
-    };
+module.exports = {
+    name: "LineNumbers",
+    cmds: [
+        {name: "mapToSource", args:[types.ctxID, types.integer, types.integer], results: [types.err, lines]},
+        {name: "mapToMemory", args:[types.ctxID, types.string, types.integer, types.integer], results: [types.err, lines]},
+    ],
+    evs: []
 };
+

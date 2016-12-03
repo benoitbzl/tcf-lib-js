@@ -19,70 +19,54 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-var utils = require('./utils.js');
+var schemas = require('../schemas.js')
+var scs = schemas.types;
 
-module.exports = function Breakpoints(channel) {
-    var c = channel;
-    var svcName = "Breakpoints";
-    var listeners = new utils.TcfListenerIf();
+var bpID = {title: "bpID", type:'string'};
+var bpList = {title: "bpList", type:'array'};
+var bpData = {title: "bpData", type:'object'};
+var bpIDList = {title: "bpIDList", type:'array'};
+var bpStatus = {title: "bpStatus", type:'object'};
+var bpCaps = {title: "bpCaps", type:'object'};
 
-    c.addEventHandler(svcName, "status", ['bpID', 'bp_status'], listeners.notify);
-    c.addEventHandler(svcName, "contextAdded", ['bpIDList'], listeners.notify);
-    c.addEventHandler(svcName, "contextChanged", ['bpIDList'], listeners.notify);
-    c.addEventHandler(svcName, "contextRemoved", ['bpIDList'], listeners.notify);
-
-    return {
-        addListener: listeners.add,
-        removeListener: listeners.remove,
+module.exports = {
+    name: "Breakpoints",
+    cmds: [
         // C • <token> • Breakpoints • set • <array of breakpoints> •
         // R • <token> • <error report> •
-        set: function(bpList, cb) {
-            return c.sendCommand(svcName, 'set', [bpList], ['err'], cb);
-        },
+        {name: "set", args:[bpList], results: [scs.err]},
         // C • <token> • Breakpoints • add • <breakpoint data> •
         // R • <token> • <error report> •
-        add: function(bpData, cb) {
-            return c.sendCommand(svcName, 'add', [bpData], ['err'], cb);
-        },
+        {name: "add", args:[bpData], results: [scs.err]},
         // C • <token> • Breakpoints • change • <breakpoint data> •
         // R • <token> • <error report> •
-        change: function(bpData, cb) {
-            return c.sendCommand(svcName, 'change', [bpData], ['err'], cb);
-        },
+        {name: "change", args:[bpData], results: [scs.err]},
         // C • <token> • Breakpoints • enable • <array of breakpoint IDs> •
         // R • <token> • <error report> •
-        enable: function(bpIDList, cb) {
-            return c.sendCommand(svcName, 'enable', [bpIDList], ['err'], cb);
-        },
+        {name: "enable", args:[bpIDList], results: [scs.err]},
         // C • <token> • Breakpoints • disable • <array of breakpoint IDs> •
         // R • <token> • <error report> •
-        disable: function(bpIDList, cb) {
-            return c.sendCommand(svcName, 'disable', [bpIDList], ['err'], cb);
-        },
+        {name: "disable", args:[bpIDList], results: [scs.err]},
         // C • <token> • Breakpoints • remove • <array of breakpoint IDs> •
         // R • <token> • <error report> •
-        remove: function(bpIDList, cb) {
-            return c.sendCommand(svcName, 'remove', [bpIDList], ['err'], cb);
-        },
+        {name: "remove", args:[bpIDList], results: [scs.err]},
         // C • <token> • Breakpoints • getIDs •
         // R • <token> • <error report> • <array of breakpoint IDs> •
-        getIds: function(cb) {
-            return c.sendCommand(svcName, 'getIDs', [], ['err', 'bpIDList'], cb);
-        },
+        {name: "getIds", args:[], results: [scs.err, bpIDList]},
         // C • <token> • Breakpoints • getProperties • <string: breakpoint ID> •
         // R • <token> • <error report> • <breakpoint data> •
-        getProperties: function(bpID, cb) {
-            return c.sendCommand(svcName, 'getProperties', [bpID], ['err', 'bpData'], cb);
-        },
+        {name: "getProperties", args:[bpID], results: [scs.err, bpData]},
         // C • <token> • Breakpoints • getStatus • <string: breakpoint ID> •
         // R • <token> • <error report> • <breakpoint status> •
-        getStatus: function(bpID, cb) {
-            return c.sendCommand(svcName, 'getStatus', [bpID], ['err', 'bp_status'], cb);
-        },
+        {name: "getStatus", args:[bpID], results: [scs.err, bpStatus]},
         // C • <token> • Breakpoints • getCapabilities • <string: context ID> •
         // R • <token> • <error report> • <service capabilities> •
-        getCapabilities: function(ctxID, cb) {
-            return c.sendCommand(svcName, 'getStatus', [ctxID], ['err', 'bp_caps'], cb);
-        }
-    };
-};
+        {name: "getCapabilities", args:[scs.ctxID], results: [scs.err, bpCaps]}
+    ],
+    evs: [
+        {name: "status", args: [bpID, bpStatus] },
+        {name: "contextAdded", args: [bpIDList] },
+        {name: "contextChanged", args: [bpIDList] },
+        {name: "contextRemoved", args: [bpIDList] },
+    ]
+}

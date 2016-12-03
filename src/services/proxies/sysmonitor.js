@@ -20,23 +20,17 @@
  * SOFTWARE.
  */
 
-module.exports = function SysMonitor(channel) {
-    var c = channel;
-    var svcName = "SysMonitor";
-    return {
-        getContext: function(id, cb) {
-            // C • <token> • RunControl • getContext • <string: context ID> •
-            // R • <token> • <error report> • <context data> •
-            return c.sendCommand(svcName, 'getContext', [id], ['err', 'data'], cb);
-        },
-        getChildren: function(id, cb) {
-            return c.sendCommand(svcName, 'getChildren', [id], ['err', 'ids'], cb);
-        },
-        getCommandLine: function(id, cb) {
-            return c.sendCommand(svcName, 'getCommandLine', [id], ['err', 'data'], cb);
-        },
-        getEnvironment: function(id, cb) {
-            return c.sendCommand(svcName, 'getEnvironment', [id], ['err', 'data'], cb);
-        }
-    };
+var schemas = require('../schemas.js')
+var types = schemas.types;
+var cmds = schemas.commands;
+
+module.exports = {
+    name: "SysMonitor",
+    cmds: [
+        cmds.getContext,
+        cmds.getChildren,
+        {name: "getCommandLine", args:[types.id], results: [types.err, types.odata]},
+        {name: "getEnvironment", args:[types.id], results: [types.err, types.odata]},
+    ],
+    evs: []
 };

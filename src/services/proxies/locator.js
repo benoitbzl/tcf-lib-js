@@ -19,26 +19,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+var schemas = require('../schemas.js')
+var types = schemas.types;
 
-module.exports = function Locator(channel) {
-    var c = channel;
-    var svcName = "Locator";
-    return {
-        sync: function(cb) {
-            return c.sendCommand(svcName, 'sync', [], [], cb);
-        },
-        redirect: function(peer, cb) {
-            return c.sendCommand(svcName, 'redirect', [peer], ['err'], cb);
-        },
+var attrsList = {title: 'attrsList', type:'array'};
+var agentID = {title: 'agentID', type:'string'};
+
+module.exports = {
+    name: "Locator",
+    cmds: [
+        {name: "sync", args:[], results: []},
+        {name: "redirect", args:[types.peer], results: [types.err]},
         // C • <token> • Locator • getPeers •
         // R • <token> • <error report> • <array of peer attributes> •
-        getPeers: function(cb) {
-            return c.sendCommand(svcName, 'getPeers', [], ['err', 'attrsList'], cb);
-        },
+        {name: "getPeers", args:[], results: [types.err, attrsList]},
         // C • <token> • Locator • getAgentID •
         // R • <token> • <error report> • <string: agentID> •
-        getAgentID: function(cb) {
-            return c.sendCommand(svcName, 'getAgentID', [], ['err', 'agentID'], cb);
-        }
-    };
+        {name: "getAgentID", args:[], results: [types.err, agentID]},
+    ],
+    evs: []
 };

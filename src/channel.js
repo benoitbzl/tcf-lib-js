@@ -121,7 +121,7 @@ function Channel(protocol) {
             rh.resolve = resolve;
             rh.reject = reject;
             rh.progress = null;
-            rh.resParsers = resParsers;
+            rh.parsers = resParsers;
             rh.service = service;
             rh.name = name;
             replyHandlers.push(rh);
@@ -316,7 +316,7 @@ function Channel(protocol) {
             /* parse arguments */
             while ((ch = peekStream()) != MARKER_EOM) {
                 if (cargsParsers[res_idx] === 'binary') {
-                    args.push(atob(JSONbig.parse(readStringz())));
+                    args.push(btoa(JSONbig.parse(readStringz())));
                 }
                 else args.push(JSONbig.parse(readStringz()));
             }
@@ -355,7 +355,7 @@ function Channel(protocol) {
                     if (arg === "null")
                         rargs.push(null);
                     else {
-                        if (rh.parsers && rh.parsers[res_idx] && rh.parsers[res_idx] === 'binary') {
+                        if (rh.parsers && rh.parsers[res_idx] === 'binary') {
                             rargs.push(atob(JSONbig.parse(arg)));
                         }
                         else rargs.push(JSONbig.parse(arg));

@@ -20,47 +20,31 @@
  * SOFTWARE.
  */
 
-module.exports = function FileSystem(channel) {
-    var c = channel;
-    var svcName = "FileSystem";
-    return {
-        open: function(filename, mode, attributes, cb) {
-            return c.sendCommand(svcName, 'open', [filename, mode, attributes], ['err', 'handle'], cb);
-        },
-        close: function(handle, cb) {
-            return c.sendCommand(svcName, 'close', [handle], ['err'], cb);
-        },
-        read: function(handle, offset, size, cb) {
-            return c.sendCommand(svcName, 'read', [handle, offset, size], ['data', 'err', 'eof'], cb, [], [0]);
-        },
-        write: function(handle, offset, data, cb) {
-            return c.sendCommand(svcName, 'write', [handle, offset, data], ['err', 'data'], cb, [2]);
-        },
-        stat: function(filename, cb) {
-            return c.sendCommand(svcName, 'stat', [filename], ['err', 'data'], cb);
-        },
-        remove: function(path, cb) {
-            return c.sendCommand(svcName, 'remove', [path], ['err', 'data'], cb);
-        },
-        realpath: function(path, cb) {
-            return c.sendCommand(svcName, 'realpath', [path], ['err', 'path'], cb);
-        },
-        mkdir: function(directory, attrs, cb) {
-            return c.sendCommand(svcName, 'mkdir', [directory, attrs], ['err'], cb);
-        },
-        rmdir: function(directory, cb) {
-            return c.sendCommand(svcName, 'rmdir', [directory], ['err'], cb);
-        },
-        copy: function(source, destination, perms, copy_permissions, copy_ownership, cb) {
-            return c.sendCommand(svcName, 'copy', [source, destination, copy_permissions, copy_ownership], ['err'], cb);
-        },
-        opendir: function(path, cb) {
-            return c.sendCommand(svcName, 'opendir', [path], ['err', 'handle'], cb);
-        },
-        readdir: function(handle, cb) {
-            return c.sendCommand(svcName, 'readdir', [handle], ['entries', 'err', 'eof'], cb);
-        }
-    };
+var schemas = require('../schemas.js')
+var types = schemas.types;
+var cmds =  schemas.cmd;
+
+var handle = {title: 'handle', type: 'string'};
+var path = {title: 'path', type: 'string'};
+var eof = {title: 'eof', type: 'boolean'};
+
+module.exports = {
+    name: "FileSystem",
+    cmds: [
+        {name: "open", args:[types.string, types.string, types.string], results: [types.err, handle]},
+        {name: "close", args:[handle], results: [types.err]},
+        {name: "read", args:[handle, types.integer, types.integer], results: [types.data, types.err, eof]},
+        {name: "write", args:[handle, types.integer, types.data], results: [types.err, types.odata]},
+        {name: "stat", args:[types.string], results: [types.err, types.odata]},
+        {name: "remove", args:[types.string], results: [types.err, types.odata]},        
+        {name: "realpath", args:[path], results: [types.err, path]},        
+        {name: "mkdir", args:[types.string, types.string], results: [types.err]},        
+        {name: "rmdir", args:[types.string], results: [types.err]},        
+        {name: "copy", args:[types.string, types.string, types.string, types.string, types.string], results: [types.err]},        
+        {name: "opendir", args:[path], results: [types.err, handle]},        
+        {name: "readdir", args:[handle], results: [{title:'entries', type:'array'}, types.err, eof]},        
+    ],
+    evs: []
 };
 
 module.exports.OpenModes = {
@@ -82,9 +66,9 @@ module.exports.OpenModes = {
      * TCF_O_CREAT MUST also be specified if this flag is used.
      */
     TCF_O_EXCL: 32
-        /* Causes the request to fail if the named file already exists.
-         * TCF_O_CREAT MUST also be specified if this flag is used.
-         */
+    /* Causes the request to fail if the named file already exists.
+     * TCF_O_CREAT MUST also be specified if this flag is used.
+     */
 };
 
 module.exports.FileAttrs = {
@@ -96,7 +80,7 @@ module.exports.FileAttrs = {
     ATTR_PERMISSIONS: 4,
     /* The file permissons are present in the FileAttrs object */
     ATTR_ACMODTIME: 8
-        /* The access and modification times of the file are present in
-           the FileAttrs object
-        */
+    /* The access and modification times of the file are present in
+       the FileAttrs object
+    */
 };

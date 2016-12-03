@@ -20,18 +20,15 @@
  * SOFTWARE.
  */
 
-module.exports = function Profiler(channel) {
-    var c = channel;
-    var svcName = "Profiler";
-    return {
-        configure: function(id, data, cb) {
-            return c.sendCommand(svcName, 'configure', [id, data], ['err'], cb);
-        },
-        read: function(id, cb) {
-            return c.sendCommand(svcName, 'read', [id], ['err', 'data'], cb);
-        },
-        getCapabilities: function(id, cb) {
-            return c.sendCommand(svcName, 'getCapabilities', [id], ['err', 'data'], cb);
-        },
-    };
+var schemas = require('../schemas.js')
+var types = schemas.types;
+
+module.exports = {
+    name: "Profiler",
+    cmds: [
+        {name: "configure", args:[types.id, types.odata], results: [types.err]},
+        {name: "read", args:[types.id], results: [types.err, types.odata]},
+        {name: "getCapabilities", args:[types.id], results: [types.err, types.odata]},
+    ],
+    evs: []
 };

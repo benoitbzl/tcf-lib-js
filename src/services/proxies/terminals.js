@@ -19,50 +19,29 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-var utils = require('./utils.js');
+var schemas = require('../schemas.js')
+var scs = schemas.types;
+var cmds = schemas.commands;
 
-module.exports = function Terminals(channel) {
-    var c = channel;
-    var svcName = "Terminals";
-    var listeners = new utils.TcfListenerIf();
-    var context = new utils.TcfContextIf(c, svcName);
-
-    // E • Terminals • exited • <string: terminal ID> • <int: exit code> •
-    c.addEventHandler(svcName, "exited", listeners.notify.bind(this, ['ID', 'exit_code'], "exited"));
-    // E • Terminals • winSizeChanged • <string: terminal ID> • <int: newWidth> • <int: newHeight> •
-    c.addEventHandler(svcName, "winSizeChanged", listeners.notify.bind(this, ['ID', 'width', 'height'], "winSizeChanged"));
-
-    return {
-        addListener: listeners.add,
-        removeListener: listeners.remove,
-        getContext: context.getContext,
-        launch: function(ptyType, encoding, env) {
-            // C • <token> • Terminals • launch • <string: pty type> • <string: encoding> •
-            //     <string array: environment variables> •
-            // R • <token> • <error report> • <context data> •
-            return c.sendCommand(svcName, 'launch', [ptyType, encoding, env])
-            .then( args => {
-                return {
-                    err: args[0],
-                    data: args[1]
-                };
-            });
-        },
-        exit: function(ctxID) {
-            // C • <token> • Terminals • exit • <string: context ID> •
-            // R • <token> • <error report> •
-            return c.sendCommand(svcName, 'exit', [ctxID])
-            .then( args => {
-                return {err: args[0]};
-            });
-        },
-        setWinSize: function(ctxID, width, height) {
-            // C • <token> • Terminals • setWinSize • <string: context ID> • <integer: newWidth> • <integer: newHeight> •
-            // R • <token> • <error report> •
-            return c.sendCommand(svcName, 'setWinSize', [ctxID, width, height])
-            .then( args => {
-                return {err: args[0]};
-            });
-        }
-    };
-};
+module.exports = {
+    name: "Terminals",
+    cmds: [
+        cmds.getContext,
+        // C • <token> • Terminals • launch • <string: pty type> • <string: encoding> •
+        //     <string array: environment variables> •
+        // R • <token> • <error report> • <context data> •
+        {name: "launch", args:[scs.string, scs.string, scs.string], results: [scs.err, scs.ctxData]},
+        // C • <token> • Terminals • exit • <string: context ID> •
+        // R • <token> • <error report> •
+        {name: "exit", args:[scs.ctxID], results: [scs.err]},
+        // C • <token> • Terminals • setWinSize • <string: context ID> • <integer: newWidth> • <integer: newHeight> •
+        // R • <token> • <error report> •
+        {name: "setWinSize", args:[scs.ctxID, scs.integer, scs.integer], results: [scs.err]},
+    ],
+    evs: [
+        // E • Terminals • exited • <string: terminal ID> • <int: exit code> •
+        {name: "exited", args: [scs.ID, {title : 'exit_code', type: 'integer'}] },
+        // E • Terminals • winSizeChanged • <string: terminal ID> • <int: newWidth> • <int: newHeight> •
+        {name: "winSizeChanged", args: [scs.ID, {title : 'width', type: 'integer'}, {title : 'height', type: 'integer'}] }        
+    ] 
+}

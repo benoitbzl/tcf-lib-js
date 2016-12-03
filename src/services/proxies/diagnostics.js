@@ -19,41 +19,26 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-var utils = require('../../utils.js');
+var schemas = require('../schemas.js')
+var scs = schemas.types;
 
-module.exports = function Diagnostics(channel) {
-    var c = channel;
-    var svcName = "Diagnostics";
+var bpID = {title: "bpID", type:'string'};
+var double = {title: "double", type:'number'};
+var list = {title: "list", type:'array'};
+var symbol = {title: "symbol", type:'string'};
 
-    return {
-        echo: function(str, cb) {
-            return c.sendCommand(svcName, 'echo', [str], ['str'], cb);
-        },
-        echoFp: function(double, cb) {
-            return c.sendCommand(svcName, 'echoFP', [double], ['double'], cb);
-        },
-        // jshint -W098
-        // eslint-disable-next-line no-unused-vars
-        echoErr: function(cb) {
-            utils.assert(true, "echo_err not implemented"); // TODO need to handle multiple 0 returned
-        },
-        getTestList: function(cb) {
-            return c.sendCommand(svcName, 'getTestList', [], ['err', 'list'], cb);
-        },
-        runTest: function(test_name, cb) {
-            return c.sendCommand(svcName, 'runTest', [test_name], ['err', 'ctxID'], cb);
-        },
-        cancelTest: function(test_name, cb) {
-            return c.sendCommand(svcName, 'cancelTest', [test_name], ['err'], cb);
-        },
-        getSymbol: function(ctxID, sym_name, cb) {
-            return c.sendCommand(svcName, 'getSymbol', [ctxID, sym_name], ['err', 'symbol'], cb);
-        },
-        createTestStreams: function(size0, size1, cb) {
-            return c.sendCommand(svcName, 'createTestStreams', [size0, size1], ['err', 'strID0', 'strID1'], cb);
-        },
-        disposeTestStream: function(strID, cb) {
-            return c.sendCommand(svcName, 'disposeTestStream', [strID], ['err'], cb);
-        }
-    };
+module.exports = {
+    name: "Diagnostics",
+    cmds: [
+        {name: "echo", args:[scs.string], results: [scs.string]},
+        {name: "echoFp", args:[double], results: [double]},
+        {name: "echoErr", args:[], results: [scs.err]},
+        {name: "getTestList", args:[], results: [scs.err, list]},
+        {name: "runTest", args:[scs.string], results: [scs.err, scs.ctxID]},
+        {name: "cancelTest", args:[scs.string], results: [scs.err]},
+        {name: "getSymbol", args:[scs.ctxID, scs.string], results: [scs.err, symbol]},
+        {name: "createTestStreams", args:[scs.integer, scs.integer], results: [scs.err, scs.string, scs.string]},
+        {name: "disposeTestStream", args:[scs.string], results: [scs.err]}
+    ],
+    evs: []
 };

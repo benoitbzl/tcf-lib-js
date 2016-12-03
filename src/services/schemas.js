@@ -19,29 +19,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-var schemas = require('../schemas.js')
-var types = schemas.types;
-var cmds =  schemas.commands;
 
-var attrsList = {title: 'attrsList', type:'array'};
-var agentID = {title: 'agentID', type:'string'};
-var bad_addresses = {title:'bad_addresses', type:'object'};
+var types = {
+        string: { type: 'string' },
+        object: { type: 'object' },
+        boolean: { type: 'boolean' },
+        integer: { type: 'integer' },
+        data: { title: 'data', type: 'binary' },
+        odata: { title: 'data', type: 'object' },
+        info: { title: 'info', type: 'string' },
+        ctxID: { title: 'ctxID', type: 'string' },
+        ctxIDs: { title: 'ctxIDs', type: 'array' },
+        ctx: { title: 'data', type: 'object' },
+        err: { title: 'err', type: 'object' },
+        ctxData: { title: 'data', type: 'object' },
+        ID: { title: 'ID', type: 'string' },
+        id: { title: 'id', type: 'string' },
+        streamID: {title: 'streamID', type: 'string'},
+        peer: {title: 'peer', type: 'string'}
+    };
 
 module.exports = {
-    name: "Memory",
-    cmds: [
-        cmds.getContext,
-        cmds.getChildren,
-        {name: "get", args:[types.id, types.integer, types.integer, types.integer, types.string], results: [types.data, types.err, bad_addresses]},
-        {name: "set", args:[types.id, types.integer, types.integer, types.integer, types.string, types.data], results: [types.err, bad_addresses]},
-        {name: "fill", args:[types.id, types.integer, types.integer, types.integer, types.string, types.data], results: [types.err, bad_addresses]},
-    ],
-    evs: []
-};
-
-module.exports.Modes = {
-    /* Memory Access (read/write) modes */
-    MM_CONTINUE_ON_ERROR: 1,
-    /*  continue on error */
-    MM_VERIFY: 2 /*  verify data */
-};
+    types: types,
+    commands: {
+        getContext: { name: "getContext", args: [types.ctxID], results: [types.err, types.ctx] },
+        getChildren: { name: "getChildren", args: [types.ctxID], results: [types.err, types.ctxIDs] },
+    }
+}

@@ -19,16 +19,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+var schemas = require('../schemas.js')
+var types = schemas.types;
 
-module.exports = function PathMap(channel) {
-    var c = channel;
-    var svcName = "PathMap";
-    return {
-        set: function(path_map_data, cb) {
-            return c.sendCommand(svcName, 'set', [path_map_data], ['err'], cb);
-        },
-        get: function(cb) {
-            return c.sendCommand(svcName, 'get', [], ['err', 'data'], cb);
-        },
-    };
+module.exports = {
+    name: "PathMap",
+    cmds: [
+        {name: "get", args:[], results: [types.err, types.odata]},
+        {name: "set", args:[types.odata], results: [types.err]},
+    ],
+    evs: []
 };
+

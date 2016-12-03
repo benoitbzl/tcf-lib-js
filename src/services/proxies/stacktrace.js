@@ -19,22 +19,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-var utils = require('./utils.js');
+var schemas = require('../schemas.js')
+var types = schemas.types;
+var cmds = schemas.commands;
 
-module.exports = function StackTrace(channel) {
-    var c = channel;
-    var svcName = "StackTrace";
-    var context = new utils.TcfContextIf(c, svcName);
+var frameIDs = {type: 'array'};
+var frames = {title: 'frames', type: 'array'};
 
-    return {
+module.exports = {
+    name: "StackTrace",
+    cmds: [
         // C • <token> • StackTrace • getContext • <array of context IDs> •
         // R • <token> • <array of context data> • <error report> •
-        getContext: function(frameIDs, cb) {
-            return c.sendCommand(svcName, 'getContext', [frameIDs], ['frames', 'err'], cb);
-        },
-        getChildren: context.getChildren,
-        getChildrenRange: function(ctxID, min, max, cb) {
-            return c.sendCommand(svcName, 'getChildrenRange', [ctxID, min, max], ['err', 'ctxIDs'], cb);
-        }
-    };
+        {name: "getContext", args:[frameIDs], results: [frames, types.err]},
+        cmds.getChildren,
+        {name: "getChildrenRange", args:[types.ctxID, types.integer, types.integer], results: [types.err, types.ctxIDs]},
+    ],
+    evs: []
 };

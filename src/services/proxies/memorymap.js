@@ -19,16 +19,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+var schemas = require('../schemas.js')
+var types = schemas.types;
 
-module.exports = function MemoryMap(channel) {
-    var c = channel;
-    var svcName = "MemoryMap";
-    return {
-        get: function(ctxID, cb) {
-            return c.sendCommand(svcName, 'get', [ctxID], ['err', 'data'], cb);
-        },
-        set: function(ctxID, data, cb) {
-            return c.sendCommand(svcName, 'set', [ctxID, data], ['err'], cb);
-        }
-    };
+module.exports = {
+    name: "MemoryMap",
+    cmds: [
+        {name: "get", args:[types.id], results: [types.err, types.odata]},
+        {name: "set", args:[types.id, types.odata], results: [types.err]},
+    ],
+    evs: []
 };

@@ -21,8 +21,6 @@
  */
 
 module.exports = {
-    Breakpoints: require('./proxies/breakpoints.js'),
-    Diagnostics: require('./proxies/diagnostics.js'),
     Expressions: require('./proxies/expressions.js'),
     FileSystem: require('./proxies/filesystem.js'),
     LineNumbers: require('./proxies/linenumbers.js'),
@@ -34,8 +32,8 @@ module.exports = {
     Profiler: require('./proxies/profiler.js'),
     RunControl: require('./proxies/runcontrol.js'),
     StackTrace: require('./proxies/stacktrace.js'),
-    Streams: require('./proxies/streams.js'),
+//    Streams: require('./proxies/streams.js'),
     Symbols: require('./proxies/symbols.js'),
     SysMonitor: require('./proxies/sysmonitor.js'),
-    Terminals: require('./proxies/terminals.js'),
+//    Terminals: require('./proxies/terminals.js'),
 };

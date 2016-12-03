@@ -88,5 +88,9 @@ Protocol.prototype.getCommandArgsParsers = function (svc, cmd) {
     return this._svc[svc][cmd].parsers || [];
 };
 
+Protocol.prototype.getServiceList = function () {
+    return this._svcList;
+};
+
 exports.Protocol = Protocol;
 

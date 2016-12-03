@@ -19,30 +19,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-var utils = require('./utils.js');
+var schemas = require('../schemas.js')
+var types = schemas.types;
+var cmds =  schemas.commands;
 
-module.exports = function Expressions(channel) {
-    var c = channel;
-    var svcName = "Expressions";
-    var context = new utils.TcfContextIf(c, svcName);
+var expr_ctx = {title: "expr_ctx", type:'string'};
 
-    return {
-        getContext: context.getContext,
-        getChildren: context.getChildren,
-        create: function(ctxID, lang, script, cb) {
-            c.sendCommand(svcName, 'create', [ctxID, lang, script], ['err', 'expr_ctx'], cb);
-        },
-        createInScope: function(scope, script, cb) {
-            c.sendCommand(svcName, 'createInScope', [scope, script], ['err', 'expr_ctx'], cb);
-        },
-        evaluate: function(expr_id, cb) {
-            c.sendCommand(svcName, 'evaluate', [expr_id], ['value', 'err', 'info'], cb, [], [0]);
-        },
-        assign: function(value, expr_id, cb) {
-            c.sendCommand(svcName, 'assign', [expr_id, value], ['err'], cb, [1]);
-        },
-        dispose: function(expr_id, cb) {
-            c.sendCommand(svcName, 'dispose', [expr_id], ['err'], cb);
-        },
-    };
+module.exports = {
+    name: "Expressions",
+    cmds: [
+        cmds.getContext,
+        cmds.getChildren,
+        {name: "create", args:[types.ctxID, types.string, types.string], results: [types.err, expr_ctx]},
+        {name: "createInScope", args:[types.string, types.string], results: [types.err, expr_ctx]},
+        {name: "evaluate", args:[types.string], results: [types.data, types.err, types.info]},
+        {name: "assign", args:[types.string, types.string], results: [types.err]},
+        {name: "dispose", args:[types.string], results: [types.err]},        
+    ],
+    evs: []
 };

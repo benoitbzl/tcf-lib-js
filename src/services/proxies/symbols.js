@@ -19,108 +19,37 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-var utils = require('./utils.js');
+var schemas = require('../schemas.js')
+var types = schemas.types;
+var cmds = schemas.commands;
 
-module.exports = function Symbols(channel) {
-    var c = channel;
-    var svcName = "Symbols";
-    var context = new utils.TcfContextIf(c, svcName);
+var symIDs = {title: 'symIDs', type: 'array'};
+var symID = {title: 'symID', type: 'string'};
+var info = {title: 'info', type: 'object'};
+var commands = {title:'commands', type:'array'};
+var size = {title: 'size', type: 'integer'};
+var addr = {title: 'addr', type: 'integer'};
+var region = {title: 'region', type: 'object'};
 
-    var symbols_cache = {};
-    var listenersSet = false;
-
-    var symbols_cache_flush = function(ev) {
-        for (var symbol in symbols_cache) {
-            var idx;
-            if (ev.ctxID) {
-                if (symbols_cache[symbol].data.OwnerID == ev.ctxID)
-                    delete(symbols_cache[symbol]);
-            }
-            else if (ev.ctxList) {
-                for (idx = 0; idx < ev.ctxList.length; idx++) {
-                    if (symbols_cache[symbol].data.OwnerID == ev.ctxList[idx]) {
-                        delete(symbols_cache[symbol]);
-                        break;
-                    }
-                }
-            }
-            else if (ev.ctxDataList) {
-                for (idx = 0; idx < ev.ctxDataList.length; idx++) {
-                    if (symbols_cache[symbol].data.OwnerID == ev.ctxDataList[idx].ID) {
-                        delete(symbols_cache[symbol]);
-                        break;
-                    }
-                }
-            }
-        }
-    };
-
-    var rclisteners = {
-        contextAdded: symbols_cache_flush,
-        contextRemoved: symbols_cache_flush,
-        contextChanged: symbols_cache_flush
-    };
-
-    c.addEventHandler("MemoryMap", "changed", ['ctxID'], symbols_cache_flush);
-
-    return {
-        getContext: function(ctxID, cb) {
-            if (!listenersSet) {
-                c.svc.RunControl.addListener(rclisteners);
-                listenersSet = true;
-            }
-
-            if (symbols_cache[ctxID]) {
-                if (cb) cb(symbols_cache[ctxID]);
-                return Promise.resolve(symbols_cache[ctxID]);
-            }
-
-            // jshint -W098
-            return new Promise(function(resolve) {
-                c.sendCommand(svcName, 'getContext', [ctxID], ['err', 'data'])
-                    .then(function(res) {
-                        if (res.data && res.data.UpdatePolicy === exports.Symbols.UpdatePolicy.UpdateOnMemoryMapChanges) {
-                            symbols_cache[ctxID] = res;
-                        }
-                        resolve(res);
-                        if (cb) cb(res);
-                    });
-            });
-        },
-        getChildren: context.getChildren,
-        find: function(ctxID, name, cb) { // TODO handle variable args and results
-            return c.sendCommand(svcName, 'find', [ctxID, name], ['err', 'symIDs'], cb);
-        },
-        findByName: function(ctxID, name, cb) {
-            return c.sendCommand(svcName, 'findByName', [ctxID, name], ['err', 'symIDs'], cb);
-        },
-        findByAddr: function(ctxID, addr, cb) {
-            return c.sendCommand(svcName, 'findByAddr', [ctxID, addr], ['err', 'symIDs'], cb);
-        },
-        findInScope: function(frameID, ip, scopeID, sym_name, cb) {
-            return c.sendCommand(svcName, 'findInScope', [frameID, ip, scopeID, sym_name], ['err', 'symIDs'], cb);
-        },
-        list: function(ctxID, cb) {
-            return c.sendCommand(svcName, 'list', [ctxID], ['err', 'symIDs'], cb);
-        },
-        getArrayType: function(symID, length, cb) {
-            return c.sendCommand(svcName, 'getArrayType', [symID, length], ['err', 'symID'], cb);
-        },
-        getLocationInfo: function(symID, cb) { // TODO check weird return args if info == NULL
-            return c.sendCommand(svcName, 'getLocationInfo', [symID], ['err', 'info'], cb);
-        },
-        findFrameInfo: function(ctxID, addr, cb) {
-            return c.sendCommand(svcName, 'findFrameInfo', [ctxID, addr], ['err', 'addr', 'size', 'commands', 'info'], cb);
-        },
-        getSymFileInfo: function(ctxID, addr, cb) {
-            return c.sendCommand(svcName, 'getSymFileInfo', [ctxID, addr], ['err', 'region'], cb);
-        },
-        getAddressInfo: function(ctxID, addr, cb) {
-            return c.sendCommand(svcName, 'getAddressInfo', [ctxID, addr], ['err', 'info'], cb);
-        }
-    };
+module.exports = {
+    name: "Symbols",
+    cmds: [
+        cmds.getContext,
+        cmds.getChildren,
+        {name: "find", args:[types.ctxID, types.string], results: [types.err, symIDs]},
+        {name: "findByName", args:[types.ctxID, types.string], results: [types.err, symIDs]},
+        {name: "findByAddr", args:[types.ctxID, types.integer], results: [types.err, symIDs]},
+        //findInScope: frameID, ip, scopeID, sym_name,
+        {name: "findInScope", args:[types.string, types.integer, types.string, types.string], results: [types.err, symIDs]},
+        {name: "list", args:[types.ctxID], results: [types.err, symIDs]},
+        {name: "getArrayType", args:[symID, types.integer], results: [types.err, symID]},
+        {name: "getLocationInfo", args:[symID], results: [types.err, info]},
+        {name: "findFrameInfo", args:[types.ctxID, types.integer], results: [types.err, addr, size, commands, info]},
+        {name: "getSymFileInfo", args:[types.ctxID, addr], results: [types.err, region]},
+        {name: "getAddressInfo", args:[types.ctxID, addr], results: [types.err, info]},        
+    ],
+    evs: []
 };
-
 
 module.exports.UpdatePolicy = {
     UpdateOnMemoryMapChanges: 0, // Update on memory map changes

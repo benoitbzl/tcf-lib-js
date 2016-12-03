@@ -19,90 +19,68 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-var utils = require('./utils.js');
+var schemas = require('../schemas.js')
+var types = schemas.types;
+var cmds = schemas.commands;
 
-module.exports = function ProcessesV1(channel) {
-    var c = channel;
-    var svcName = "ProcessesV1";
-    var listeners = new utils.TcfListenerIf();
-    var context = new utils.TcfContextIf(c, svcName);
+var signals = { title: 'signals', type: 'array' };
+var env = { title: 'env', type: 'array' };
+var dont_stop = { title: 'dont_stop', type: 'boolean' };
+var dont_pass = { title: 'dont_pass', type: 'boolean' };
+var pending = { title: 'pending', type: 'boolean' };
 
-    // E • Processes • exited • <string: process ID> • <int: exit code> •
-    c.addEventHandler(svcName, "exited", ['procID', 'exit_code'], listeners.notify);
+module.exports = {
+    name: "ProcessesV1",
+    cmds: [
+        cmds.getContext,
+        { name: "getChildren", args: [types.ctxID, types.boolean], results: [types.err, types.ctxIDs] },
+        // C • <token> • Processes • attach • <string: context ID> •
+        // R • <token> • <error report> •
+        { name: "attach", args: [types.ctxID], results: [types.err] },
+        // C • <token> • Processes • detach • <string: context ID> •
+        // R • <token> • <error report> •
+        { name: "detach", args: [types.ctxID], results: [types.err] },
+        // C • <token> • Processes • terminate • <string: context ID> •
+        // R • <token> • <error report> •
+        { name: "terminate", args: [types.ctxID], results: [types.err] },
+        // C • <token> • Processes • getSignalList • <string: context ID> •
+        // R • <token> • <error report> • <array of signal descriptions> •
+        { name: "getSignalList", args: [types.ctxID], results: [types.err, signals] },
+        // C • <token> • Processes • getSignalMask • <string: context ID> •
+        // R • <token> • <error report> • <int: don't stop bitset> • <int: don't pass bitset> • <int: pending bitset> •
+        { name: "getSignalMask", args: [types.ctxID], results: [types.err, dont_stop, dont_pass, pending] },
+        // C • <token> • Processes • setSignalMask • <string: context ID> • <int: don't stop bitset> • <int: don't pass bitset> •
+        // R • <token> • <error report> •
+        { name: "setSignalMask", args: [types.ctxID, dont_stop, dont_pass], results: [types.err] },
+        // C • <token> • Processes • signal • <string: context ID> • <int: signal> •
+        // R • <token> • <error report> •
+        { name: "signal", args: [types.ctxID, types.integer], results: [types.err] },
+        // C • <token> • Processes • getEnvironment •
+        // R • <token> • <error report> • <string array: environment variables> •
+        { name: "getEnvironment", args: [], results: [types.err, env] },
+        // C • <token> • Processes • start • <string: working directory> • <string: program image file> •
+        //     <string array: command line> • <string array: environment variables> • <boolean: attach> •
+        // R • <token> • <error report> • <context data> •
+        { name: "start", args: [types.string, types.string, types.string, types.string, types.boolean], results: [types.err, types.odata] },
+        // C • <token> • Processes • start • <string: working directory> • <string: program image file> •
+        //     <string array: command line> • <string array: environment variables> • <object: options> •
+        // R • <token> • <error report> • <context data> •
+        // options supported :
+        //         Attach: boolean
+        //  AttachChildren: boolean
+        //  StopAtEntry: boolean
+        //  StopAtMain: boolean
+        //  UseTerminal: boolean
+        //  SigDontStop: regsig
+        //  SigDontPass: regsig
+        { name: "startv1", cmd: "start", args: [types.string, types.string, types.string, types.string, types.object], results: [types.err, types.odata] },
+        // C • <token> • Processes • setWinSize •  <string: context ID> • <int: columns> • <int: raws> •
+        // R • <token> • <error report> •
+        { name: "setWinSize", args: [types.ctxID, types.integer, types.integer], results: [types.err] },
 
-    return {
-        addListener: listeners.add,
-        removeListener: listeners.remove,
-        getContext: context.getContext,
-        getChildren: function(ctxID, isAttached, cb) {
-            // C • <token> • Processes • getChildren •  <string: parent context ID> • <boolean: attached only> •
-            // R • <token> • <error report> •
-            return c.sendCommand(svcName, 'getChildren', [ctxID, isAttached], ['err', 'ctxIDs'], cb);
-        },
-        attach: function(ctxID, cb) {
-            // C • <token> • Processes • attach • <string: context ID> •
-            // R • <token> • <error report> •
-            return c.sendCommand(svcName, 'attach', [ctxID], ['err'], cb);
-        },
-        detach: function(ctxID, cb) {
-            // C • <token> • Processes • detach • <string: context ID> •
-            // R • <token> • <error report> •
-            return c.sendCommand(svcName, 'detach', [ctxID], ['err'], cb);
-        },
-        terminate: function(ctxID, cb) {
-            // C • <token> • Processes • terminate • <string: context ID> •
-            // R • <token> • <error report> •
-            return c.sendCommand(svcName, 'terminate', [ctxID], ['err'], cb);
-        },
-        getSignalList: function(ctxID, cb) {
-            // C • <token> • Processes • getSignalList • <string: context ID> •
-            // R • <token> • <error report> • <array of signal descriptions> •
-            return c.sendCommand(svcName, 'getSignalList', [ctxID], ['err', 'signals'], cb);
-        },
-        getSignalMask: function(ctxID, cb) {
-            // C • <token> • Processes • getSignalMask • <string: context ID> •
-            // R • <token> • <error report> • <int: don't stop bitset> • <int: don't pass bitset> • <int: pending bitset> •
-            return c.sendCommand(svcName, 'getSignalMask', [ctxID], ['err', 'dont_stop', 'dont_pass', 'pending'], cb);
-        },
-        setSignalMask: function(ctxID, dont_stop, dont_pass, cb) {
-            // C • <token> • Processes • setSignalMask • <string: context ID> • <int: don't stop bitset> • <int: don't pass bitset> •
-            // R • <token> • <error report> •
-            return c.sendCommand(svcName, 'setSignalMask', [ctxID, dont_stop, dont_pass], ['err'], cb);
-        },
-        signal: function(ctxID, signal, cb) {
-            // C • <token> • Processes • signal • <string: context ID> • <int: signal> •
-            // R • <token> • <error report> •
-            return c.sendCommand(svcName, 'signal', [ctxID, signal], ['err'], cb);
-        },
-        getEnvironment: function(cb) {
-            // C • <token> • Processes • getEnvironment •
-            // R • <token> • <error report> • <string array: environment variables> •
-            return c.sendCommand(svcName, 'getEnvironment', [], ['err', 'env'], cb);
-        },
-        start: function(wd, img, args, env, attach, cb) {
-            // C • <token> • Processes • start • <string: working directory> • <string: program image file> •
-            //     <string array: command line> • <string array: environment variables> • <boolean: attach> •
-            // R • <token> • <error report> • <context data> •
-            return c.sendCommand(svcName, 'start', [wd, img, args, env, attach], ['err', 'data'], cb);
-        },
-        startv1: function(wd, img, args, env, opt, cb) {
-            // C • <token> • Processes • start • <string: working directory> • <string: program image file> •
-            //     <string array: command line> • <string array: environment variables> • <object: options> •
-            // R • <token> • <error report> • <context data> •
-            // options supported :
-            //         Attach: boolean
-            //  AttachChildren: boolean
-            //  StopAtEntry: boolean
-            //  StopAtMain: boolean
-            //  UseTerminal: boolean
-            //  SigDontStop: regsig
-            //  SigDontPass: regsig
-            return c.sendCommand(svcName, 'start', [wd, img, args, env, opt], ['err', 'data'], cb);
-        },
-        setWinSize: function(ctxID, columns, rows, cb) {
-            // C • <token> • Processes • setWinSize •  <string: context ID> • <int: columns> • <int: raws> •
-            // R • <token> • <error report> •
-            return c.sendCommand(svcName, 'setWinSize', [ctxID, columns, rows], ['err'], cb);
-        }
-    };
+    ],
+    evs: [
+        // E • Processes • exited • <string: process ID> • <int: exit code> •
+        { name: "exited", args: [{ title: 'procID', type: 'string' }, { title: 'exit_code', type: 'integer' }]}
+    ]
 };

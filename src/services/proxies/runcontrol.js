@@ -19,69 +19,60 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-var utils = require('./utils.js');
+var schemas = require('../schemas.js')
+var types = schemas.types;
+var cmds = schemas.commands;
 
-module.exports = function RunControl(channel) {
-    var c = channel;
-    var svcName = "RunControl";
-    var listeners = new utils.TcfListenerIf();
-    var context = new utils.TcfContextIf(c, svcName);
+var suspended = { title: 'suspended', type: 'boolean' };
+var PC = { title: 'PC', type: 'integer' };
+var reason = { title: 'reason', type: 'string' };
+var ctxDataList = { title: 'ctxDataList', type: 'array' };
+var ctxList = { title: 'ctxList', type: 'array' };
+var state_data = { title: 'state_data', type: 'object' };
 
-    // E • RunControl • contextAdded • <array of context data> •
-    c.addEventHandler(svcName, "contextAdded", ['ctxDataList'], listeners.notify);
-    // E • RunControl • contextChanged • <array of context data> •
-    c.addEventHandler(svcName, "contextChanged", ['ctxDataList'], listeners.notify);
-    // E • RunControl • contextRemoved • <array of context IDs> •
-    c.addEventHandler(svcName, "contextRemoved", ['ctxList'], listeners.notify);
-    // E • RunControl • contextSuspended • <string: context ID> • <int: PC> •
-    //     <string: reason> • <state data> •
-    c.addEventHandler(svcName, "contextSuspended", ['ctxID', 'PC', 'reason', 'state_data'], listeners.notify);
-    // E • RunControl • contextResumed • <string: context ID> •
-    c.addEventHandler(svcName, "contextResumed", ['ctxID'], listeners.notify);
-    // E • RunControl • contextException • <string: context ID> • <string: description> •
-    c.addEventHandler(svcName, "contextException", ['ctxID', 'description'], listeners.notify);
-    // E • RunControl • containerSuspended • <string: context ID> • <int: PC> •
-    //     <string: reason> • <state data> • <array of context IDs> •
-    c.addEventHandler(svcName, "containerSuspended", ['ctxID', 'PC', 'reason', 'state_data', 'ctxList'], listeners.notify);
-    // E • RunControl • containerResumed • <array of context IDs> •
-    c.addEventHandler(svcName, "containerResumed", ['ctxList'], listeners.notify);
-
-    return {
-        getState: function(ctxID, cb) {
-            // C • <token> • RunControl • getState • <string: context ID> •
-            // R • <token> • <error report> • <boolean: suspended> •
-            //    <int: PC> • <string: last state change reason> • <state data> •
-            return c.sendCommand(svcName, 'getState', [ctxID], ['err', 'suspended', 'PC', 'reason', 'data'], cb);
-        },
-        resume: function(ctxID, mode, count, cb, range) {
-            // C • <token> • RunControl • resume • <string: context ID> • <int: mode> • <int: count> •
-            // C • <token> • RunControl • resume • <string: context ID> • <int: mode> • <int: count> • <object: parameters> •
-            // R • <token> • <error report> •
-            if (typeof range != 'undefined')
-                return c.sendCommand(svcName, 'resume', [ctxID, mode, count, range], ['err'], cb);
-            else
-                return c.sendCommand(svcName, 'resume', [ctxID, mode, count], ['err'], cb);
-        },
-        suspend: function(ctxID, cb) {
-            // C • <token> • RunControl • suspend • <string: context ID> •
-            // R • <token> • <error report> •
-            return c.sendCommand(svcName, 'suspend', [ctxID], ['err'], cb);
-        },
-        terminate: function(ctxID, cb) {
-            // C • <token> • RunControl • terminate • <string: context ID> •
-            // R • <token> • <error report> •
-            return c.sendCommand(svcName, 'terminate', [ctxID], ['err'], cb);
-        },
-        detach: function(ctxID, cb) {
-            // C • <token> • RunControl • detach • <string: context ID> •
-            // R • <token> • <error report> •
-            return c.sendCommand(svcName, 'detach', [ctxID], ['err'], cb);
-        },
-        addListener: listeners.add,
-        removeListener: listeners.remove,
-        getContext: context.getContext,
-        getChildren: context.getChildren,
-    };
+module.exports = {
+    name: "RunControl",
+    cmds: [
+        cmds.getContext,
+        cmds.getChildren,
+        // C • <token> • RunControl • getState • <string: context ID> •
+        // R • <token> • <error report> • <boolean: suspended> •
+        //    <int: PC> • <string: last state change reason> • <state data> •
+        { name: "getState", args: [types.id], results: [types.err, suspended, PC, reason, types.odata] },
+        // C • <token> • RunControl • resume • <string: context ID> • <int: mode> • <int: count> •
+        // C • <token> • RunControl • resume • <string: context ID> • <int: mode> • <int: count> • <object: parameters> •
+        // R • <token> • <error report> •
+        { name: "resume", args: [types.id, types.integer, types.integer, { type: 'object', required: false }], results: [types.err] },
+        // C • <token> • RunControl • suspend • <string: context ID> •
+        // R • <token> • <error report> •
+        { name: "suspend", args: [types.id], results: [types.err] },
+        // C • <token> • RunControl • terminate • <string: context ID> •
+        // R • <token> • <error report> •
+        { name: "terminate", args: [types.id], results: [types.err] },
+        // C • <token> • RunControl • detach • <string: context ID> •
+        // R • <token> • <error report> •
+        { name: "detach", args: [types.id], results: [types.err] },
+    ],
+    evs: [
+        // E • RunControl • contextAdded • <array of context data> •
+        { name: "contextAdded", args: [ctxDataList] },
+        // E • RunControl • contextChanged • <array of context data> •
+        { name: "contextChanged", args: [ctxDataList] },
+        // E • RunControl • contextRemoved • <array of context IDs> •
+        { name: "contextRemoved", args: [ctxList] },
+        // E • RunControl • contextSuspended • <string: context ID> • <int: PC> •
+        //     <string: reason> • <state data> •
+        { name: "contextSuspended", args: [types.ctxID, PC, reason, state_data] },
+        // E • RunControl • contextResumed • <string: context ID> •
+        { name: "contextResumed", args: [types.ctxID] },
+        // E • RunControl • contextException • <string: context ID> • <string: description> •
+        { name: "contextException", args: [types.ctxID, { title: 'description', type: 'string' }] },
+        // E • RunControl • containerSuspended • <string: context ID> • <int: PC> •
+        //     <string: reason> • <state data> • <array of context IDs> •
+        { name: "containerSuspended", args: [types.ctxID, PC, reason, state_data, ctxList] },
+        // E • RunControl • containerResumed • <array of context IDs> •
+        { name: "containerResumed", args: [ctxList] },
+    ]
 };
 
 module.exports.ResumeModes = {
