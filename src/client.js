@@ -32,9 +32,8 @@ var proto = require('./protocol.js');
 //===============================================================================
 // TCF services proxy definitions
 
-var service_proxies = require('./services/proxies.js');
-var prototypes = require('./services/schemas_svc.js').services;
-var utils = require('./services/proxies/utils.js');
+var svc_ifs = require('./services/interfaces.js').services;
+var utils = require('./services/interfaces/utils.js');
 
 function Proxy(prototype, c) {
     var self = this;
@@ -163,8 +162,8 @@ exports.Client = function Client(protocol) {
                     if (service_proxies[svcs[idx]]) {
                         self.svc[svcs[idx]] = new service_proxies[svcs[idx]](c);
                     }
-                    else if (prototypes[svcs[idx]]) {
-                        self.svc[svcs[idx]] = new Proxy(prototypes[svcs[idx]], c);
+                    else if (svc_ifs[svcs[idx]]) {
+                        self.svc[svcs[idx]] = new Proxy(svc_ifs[svcs[idx]], c);
                     }
                     else {
                         //console.log("WARNING: ignore unknown service " + svcs[idx]);

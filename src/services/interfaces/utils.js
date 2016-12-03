@@ -50,18 +50,3 @@ exports.TcfListenerIf = function TcfListenerIf() {
     };
 };
 
-// TcfContextIf : creates a TCF Context related commands container used by many TCF services
-exports.TcfContextIf = function TcfContextIf(c, svcName) {
-    return {
-        getChildren: function(ctxID, cb) {
-            // C • <token> • RunControl • getChildren • <string: parent context ID> •
-            // R • <token> • <error report> • <array of context IDs> •
-            return c.sendCommand(svcName, 'getChildren', [ctxID], ['err', 'ctxIDs'], cb);
-        },
-        getContext: function(ctxID, cb) {
-            // C • <token> • RunControl • getContext • <string: context ID> •
-            // R • <token> • <error report> • <context data> •
-            return c.sendCommand(svcName, 'getContext', [ctxID], ['err', 'data'], cb);
-        }
-    };
-};

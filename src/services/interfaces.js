@@ -19,14 +19,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-var utils = require('./proxies/utils.js');
+var utils = require('./interfaces/utils.js');
 
 var services = {
-    Breakpoints: require('./proxies/breakpoints.js'),
-    Diagnostics: require('./proxies/diagnostics.js'),
-    
-    Terminals : require('./proxies/terminals.js'),
-    Streams: require('./proxies/streams.js'),
+    Expressions: require('./interfaces/expressions.js'),
+    FileSystem: require('./interfaces/filesystem.js'),
+    LineNumbers: require('./interfaces/linenumbers.js'),
+    Locator: require('./interfaces/locator.js'),
+    Memory: require('./interfaces/memory.js'),
+    MemoryMap: require('./interfaces/memorymap.js'),
+    PathMap: require('./interfaces/pathmap.js'),
+    ProcessesV1: require('./interfaces/processesv1.js'),
+    Profiler: require('./interfaces/profiler.js'),
+    RunControl: require('./interfaces/runcontrol.js'),
+    StackTrace: require('./interfaces/stacktrace.js'),
+    Streams: require('./interfaces/streams.js'),
+    Symbols: require('./interfaces/symbols.js'),
+    SysMonitor: require('./interfaces/sysmonitor.js'),
+    Terminals: require('./interfaces/terminals.js'),
 }
 
 function addService(prototype) {
@@ -43,20 +53,4 @@ module.exports = {
     services : services,
     addService: addService,
     removeService: removeService,
-    // Breakpoints: require('./proxies/breakpoints.js'),
-    // Diagnostics: require('./proxies/diagnostics.js'),
-    // Expressions: require('./proxies/expressions.js'),
-    // FileSystem: require('./proxies/filesystem.js'),
-    // LineNumbers: require('./proxies/linenumbers.js'),
-    // Locator: require('./proxies/locator.js'),
-    // Memory: require('./proxies/memory.js'),
-    // MemoryMap: require('./proxies/memorymap.js'),
-    // PathMap: require('./proxies/pathmap.js'),
-    // ProcessesV1: require('./proxies/processesv1.js'),
-    // Profiler: require('./proxies/profiler.js'),
-    // RunControl: require('./proxies/runcontrol.js'),
-    // StackTrace: require('./proxies/stacktrace.js'),
-    // Streams: require('./proxies/streams.js'),
-    // Symbols: require('./proxies/symbols.js'),
-    // SysMonitor: require('./proxies/sysmonitor.js'),
 };
