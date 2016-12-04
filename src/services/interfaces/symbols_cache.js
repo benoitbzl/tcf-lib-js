@@ -19,12 +19,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-var utils = require('./utils.js');
 
 module.exports = function Symbols(channel) {
     var c = channel;
     var svcName = "Symbols";
-    var context = new utils.TcfContextIf(c, svcName);
+//    var context = new utils.TcfContextIf(c, svcName);
 
     var symbols_cache = {};
     var listenersSet = false;

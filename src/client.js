@@ -31,51 +31,8 @@ var proto = require('./protocol.js');
 
 //===============================================================================
 // TCF services proxy definitions
-
 var svc_ifs = require('./services/interfaces.js').services;
-var utils = require('./services/interfaces/utils.js');
-
-function Proxy(prototype, c) {
-    var self = this;
-
-    /* create helper functions */
-    prototype.cmds.forEach(cmd => {
-        var fn = function (cmd) {
-            /* transform parameter according to schema.
-             * For now we only handle binary args */
-            var args = cmd.args.map((arg, i) => {
-                if (arg.type === 'binary') return btoa(arguments[i + 1]);
-                else return arguments[i + 1];
-            });
-            return c.sendCommand(prototype.name, cmd.cmd || cmd.name, args)
-                .then( args => {
-                    /* transform parameter according to schema.
-                     * For now we only handle binary args 
-                     * We construct an object with the results (needed for compatibility */
-                    var res = {};
-                    cmd.results.forEach((result, i) => {
-                       if (result.type === 'binary') res[result.title] = atob(args[i]);
-                       else  res[result.title] = args[i];
-                    });
-                    return res;
-                });
-        }
-        this[cmd.name] = fn.bind(self, cmd);    
-    });
-
-    var listeners = new utils.TcfListenerIf();
-    this.addListener = listeners.add;
-    this.removeListener = listeners.remove;
-
-    /* if this service supports event create the event listener */
-    prototype.evs.forEach( ev => {
-        var argsName = ev.args.map( arg => {
-            return arg.title;
-        });
-        // install handler on the channel
-        c.addEventHandler(prototype.name, ev.name, listeners.notify.bind(this, argsName, ev.name));
-     });
-}
+var Proxy = require('./services/proxy.js');
 
 /**
  * Creates a new tcf client.

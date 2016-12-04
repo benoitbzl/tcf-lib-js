@@ -22,7 +22,8 @@
 
 // TcfListenerIf : creates a listener object that is used to forward TCF events.
 
-exports.TcfListenerIf = function TcfListenerIf() {
+
+function TcfListenerIf() {
     var listeners = [];
     return {
         add: function(listener) {
@@ -49,4 +50,47 @@ exports.TcfListenerIf = function TcfListenerIf() {
         }
     };
 };
+
+
+module.exports = function  Proxy(svcInterface, c) {
+    var self = this;
+
+    /* create helper functions */
+    svcInterface.cmds.forEach(cmd => {
+        var fn = function (cmd) {
+            /* transform parameter according to schema.
+             * For now we only handle binary args */
+            var args = cmd.args.map((arg, i) => {
+                if (arg.type === 'binary') return btoa(arguments[i + 1]);
+                else return arguments[i + 1];
+            });
+            return c.sendCommand(svcInterface.name, cmd.cmd || cmd.name, args)
+                .then( args => {
+                    /* transform parameter according to schema.
+                     * For now we only handle binary args 
+                     * We construct an object with the results (needed for compatibility */
+                    var res = {};
+                    cmd.results.forEach((result, i) => {
+                       if (result.type === 'binary') res[result.title] = atob(args[i]);
+                       else  res[result.title] = args[i];
+                    });
+                    return res;
+                });
+        }
+        this[cmd.name] = fn.bind(self, cmd);    
+    });
+
+    var listeners = new TcfListenerIf();
+    this.addListener = listeners.add;
+    this.removeListener = listeners.remove;
+
+    /* if this service supports event create the event listener */
+    svcInterface.evs.forEach( ev => {
+        var argsName = ev.args.map( arg => {
+            return arg.title;
+        });
+        // install handler on the channel
+        c.addEventHandler(svcInterface.name, ev.name, listeners.notify.bind(this, argsName, ev.name));
+     });
+}
 

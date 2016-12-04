@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-var utils = require('./interfaces/utils.js');
+var utils = require('../utils.js');
 
 var services = {
     Expressions: require('./interfaces/expressions.js'),
