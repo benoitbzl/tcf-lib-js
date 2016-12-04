@@ -159,10 +159,7 @@ exports.Client = function Client(protocol) {
                     if (svcs[idx] == "ZeroCopy") {
                         continue;
                     }
-                    if (service_proxies[svcs[idx]]) {
-                        self.svc[svcs[idx]] = new service_proxies[svcs[idx]](c);
-                    }
-                    else if (svc_ifs[svcs[idx]]) {
+                    if (svc_ifs[svcs[idx]]) {
                         self.svc[svcs[idx]] = new Proxy(svc_ifs[svcs[idx]], c);
                     }
                     else {
