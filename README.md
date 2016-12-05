@@ -194,4 +194,7 @@ client.svc.Memory.get("P3896", JSONbig.parse(val), 1, 672, 3)
 
 ```
 
+### Disclaimer of Warranty / No Support
+Wind River does not provide support and maintenance services for this software, under Wind River's standard Software Support and Maintenance Agreement or otherwise. Unless required by applicable law, Wind River provides the software (and each contributor provides its contribution) on an "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, either express or implied, including, without limitation, any warranties of TITLE, NONINFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE. You are solely responsible for determining the appropriateness of using or redistributing the software and assume any risks associated with your exercise of permissions under the license.
+
 
