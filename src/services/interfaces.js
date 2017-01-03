@@ -45,7 +45,6 @@ function addService(prototype) {
 };
 
 function removeService(name) {
-    utils.assert (!services[prototype.name]);
     delete services[name];    
 }
 
