@@ -74,9 +74,9 @@ exports.Client = function Client(protocol) {
             options = undefined;
         }
 
-        var ps = peer.peer_from_url(url);
 
         try {
+            var ps = peer.peer_from_url(url);
             var cc = channelClient(ps, options);
         }
         catch (error) {
