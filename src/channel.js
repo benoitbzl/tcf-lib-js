@@ -554,7 +554,7 @@ function Channel(protocol) {
             if (state === ChannelState.Disconnected) return;
 
             writeStream(MARKER_EOS);
-            writeStream(0);
+            writeErrorObject(null);
             writeStream(MARKER_EOM);
 
             state = ChannelState.Disconnected;
