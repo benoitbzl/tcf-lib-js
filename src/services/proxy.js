@@ -83,6 +83,7 @@ module.exports = function  Proxy(svcInterface, c) {
     var listeners = new TcfListenerIf();
     this.addListener = listeners.add;
     this.removeListener = listeners.remove;
+    this.itf = svcInterface;
 
     /* if this service supports event create the event listener */
     svcInterface.evs.forEach( ev => {
