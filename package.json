@@ -1,7 +1,7 @@
 {
   "name": "tcf",
   "version": "1.0.0",
-  "description": "Javascript TCF client layer. Used to connect an node js application to an tcf agent",
+  "description": "Javascript TCF client/server library.",
   "main": "src/tcf.js",
   "browser": {
     "ws": "./src/browser-ws.js",
@@ -11,11 +11,12 @@
   "keywords": [
     "nodejs",
     "tcf",
-    "client"
+    "client",
+    "browser"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/WindRiver-OpenSourceLabs/oss-tcf-client-js"
+    "url": "https://github.com/Wind-River/tcf-lib-js.git"
   },
   "dependencies": {
     "atob": "^2.0.3",
@@ -36,7 +37,7 @@
   },
   "scripts": {
     "postinstall": "bower install",
-    "build": "mkdir -p dist && ./node_modules/.bin/browserify src/tcf.js -s tcf -i atob -i btoa -i ./src/server.js -i ./src/channel_server_ws.js > dist/tcf.js",
+    "build": "mkdir -p dist && browserify src/tcf.js -s tcf -i atob -i btoa -i ./src/server.js -i ./src/channel_server_ws.js > dist/tcf.js",
     "test": " ./node_modules/.bin/mocha --reporter spec --full-trace test/**/*.js",
     "doc": "./node_modules/.bin/jsdoc -r src/tcf.js src/channel.js src/protocol.js src/client.js src/server.js -R ./README.md -d ./doc/"
   }
