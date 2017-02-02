@@ -60,18 +60,18 @@ describe('tcf-client', function () {
             if (!args) throw {msg:'Invalid argument'};
             return ([{error:"this is an error object"}]);
         });
-        
+
         /* test service ping */
         server = new tcf.Server(wsurl, protocol);
     });
-    
+
     it('Server Connection', function () {
         return new Promise((resolve, reject) => {
             var client = new tcf.Client();
-            client.connect(wsurl, 
+            client.connect(wsurl,
                 () => {
                     expect(client).to.have.property('svc');
-                    client.close(); 
+                    client.close();
                     resolve();
                 },
                 () => {reject("channel Closed");},
@@ -82,31 +82,27 @@ describe('tcf-client', function () {
 
     it('Server Connection without server', function (done) {
         var client = new tcf.Client();
-        
-        client.connect('WS::20002', 
-            () => {done('channel conected');},
+
+        client.connect('WS::20002',
+            () => {done('channel connected');},
             () => {done("channel Closed");},
             () => {done();}
         );
     });
 
-    it('Should rise invalid peer url error', function () {
-        var fn = function () {
-            new tcf.Client().connect();
-        };
-        expect(fn).to.throw(Error, 'Invalid peer url');
+    it('Should return -1 for invalid peer url', function () {
+        var client = new tcf.Client();
 
-        fn = function () {
-            new tcf.Client().connect('');
-        };
-        return expect(fn).to.throw(Error, 'Invalid peer url');
+        expect(client.connect()).to.equal(-1);
+
+        return expect(client.connect('')).to.equal(-1);
     });
-    
+
     it('Send command echo - should return 2 args', function () {
         return new Promise ((resolve, reject) => {
             var client = new tcf.Client();
-            
-            client.connect(wsurl, 
+
+            client.connect(wsurl,
                 () => {
                     client.sendCommand('Pong', 'echo',['testmsg'])
                     .then((res) => {
@@ -114,7 +110,7 @@ describe('tcf-client', function () {
                         res[0].should.equal(0);
                         res[1].should.equal('testmsg');
                         resolve();
-                        client.close(); 
+                        client.close();
                     })
                     .catch(err => {reject(err)})
                 },
@@ -123,19 +119,19 @@ describe('tcf-client', function () {
                 );
         });
     });
-    
+
     it('Send command error - should return 1 arg (error)', function () {
         return new Promise ((resolve, reject) => {
             var client = new tcf.Client();
-            
-            client.connect(wsurl, 
+
+            client.connect(wsurl,
                 () => {
                     client.sendCommand('Pong', 'error',['testmsg'])
                     .then((res) => {
                         res.should.have.length(1);
                         res[0].should.not.equal(0);
                         resolve();
-                        client.close(); 
+                        client.close();
                     })
                     .catch(err => {reject(err)})
                 },

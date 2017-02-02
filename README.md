@@ -2,8 +2,8 @@
 
 TCF JavaScript library support both client and server (nodejs) configuration.
 
-## Disclaimer 
-This package is under heavy development and not ready for production. 
+## Disclaimer
+This package is under heavy development and not ready for production.
 API compatibility is not guaranteed.
 
 ### Install
@@ -178,10 +178,10 @@ c.svc.ProcessesV1.getChildren ("", false)
 });
 ```
 
-Note: special case to call tcf api with 64 argument value
+Note: special case to call tcf api with 64bits or floating point argument values
 
 ```js
-var JSONBig = require ('json-bigint'); 
+var JSONBig = require ('json-bigint');
 
 val = '9223372036351367728';
 client.svc.Memory.get("P3896", JSONbig.parse(val), 1, 672, 3)
@@ -192,6 +192,13 @@ client.svc.Memory.get("P3896", JSONbig.parse(val), 1, 672, 3)
     // Error
 });
 
+```
+
+By default, 64bits or floating point argument values are received from the TCL library
+as strings that can be manipulated with the package 'json-bigint'. The TCL library
+can be configured to return BigNumber objects instead (as defined by the 'bignumber.js' library):
+```js
+var tcf = require('tcf')({bigNumAsString: false});
 ```
 
 ### Legal Notices

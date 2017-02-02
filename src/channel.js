@@ -1,5 +1,5 @@
 /**
- * TCF Channel inteface 
+ * TCF Channel inteface
  * @module tcf/channel
  * @license
  * Copyright (c) 2016 Wind River Systems
@@ -30,7 +30,6 @@ if (typeof global !== 'undefined') {
 
 var promise = Promise;
 var utils = require('./utils.js');
-var JSONbig = require('json-bigint');
 
 var channelId = 0;
 
@@ -65,8 +64,8 @@ var MARKER_EOS = -2;
 var OBUF_SIZE = 1024 * 128;
 
 /**
- * @class 
- * @param {Protocol} protocol - definition of local services 
+ * @class
+ * @param {Protocol} protocol - definition of local services
  */
 function Channel(protocol) {
     var ibuf;
@@ -86,6 +85,9 @@ function Channel(protocol) {
     var hasZeroCopySupport = false;
 
     setProtocol(protocol);
+
+    var options = require('./options.js').get();
+    var JSONbig = require('json-bigint')({storeAsString: options.bigNumAsString});
 
     var enableZeroCopy = function(enable) {
         hasZeroCopySupport = enable;
@@ -129,7 +131,7 @@ function Channel(protocol) {
         });
         return pres;
     };
-    
+
     var writeStream = function(ch) {
         utils.assert(owrite < obuf.length);
         if (ch == MARKER_EOM) {
@@ -333,7 +335,7 @@ function Channel(protocol) {
                 writeStream(MARKER_EOM);
             })
             .catch(function(err) {
-                // close the channel 
+                // close the channel
                 console.log ('TCF protocol Error', err);
             });
         }
@@ -380,7 +382,7 @@ function Channel(protocol) {
                 var eargsParsers = evhandler.parsers; // proto.getEventArgsParsers(msg.service, msg.name);
                 var eargs = [];
                 var ev_idx = 0;
-                
+
                 while (peekStream() != MARKER_EOM) {
                     if (eargsParsers[ev_idx] === 'binary') {
                         eargs.push(atob(JSONbig.parse(readStringz())));
@@ -554,7 +556,7 @@ function Channel(protocol) {
             if (state === ChannelState.Disconnected) return;
 
             writeStream(MARKER_EOS);
-            writeErrorObject(null);
+            writeStringz("null");
             writeStream(MARKER_EOM);
 
             state = ChannelState.Disconnected;
@@ -578,7 +580,7 @@ function Channel(protocol) {
                 service: service,
                 name: name,
                 parsers: parsers || [],
-                handler: eh                
+                handler: eh
             });
         },
         getState: function() {
