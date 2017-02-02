@@ -29,18 +29,36 @@
  */
 
 /**
- * @typedef {string} PeerUrl - string representing a peer url. 
- * @example "WS::8080" server running on localhost on port 8080 (all interfaces) 
- * @example "TCP::9000" server running on localhost on port 900 (all interfaces) 
- * @example "WSS:192.168.1.1:443" 
+ * @typedef {string} PeerUrl - string representing a peer url.
+ * @example "WS::8080" server running on localhost on port 8080 (all interfaces)
+ * @example "TCP::9000" server running on localhost on port 900 (all interfaces)
+ * @example "WSS:192.168.1.1:443"
  * @example "wss://192.168.1.1/"
  */
 
 /* global exports */
+
 require('./transports.js');
-exports.Client = require('./client.js').Client;
-exports.Service = require('./service.js').Service;
-exports.Protocol = require('./protocol.js').Protocol;
-exports.schemas = require('./schemas.js').schemas;
-exports.BroadcastGroup = require('./broadcast.js').BroadcastGroup;
-exports.Server = require('./server.js').Server;
+
+module.exports = function(options) {
+
+    require('./options').set(options);
+
+    return  {
+        Client: require('./client.js').Client,
+        Service: require('./service.js').Service,
+        Protocol: require('./protocol.js').Protocol,
+        schemas: require('./schemas.js').schemas,
+        BroadcastGroup: require('./broadcast.js').BroadcastGroup,
+        Server: require('./server.js').Server
+    };
+};
+
+// create the default method members with no options applied for backwards compatibility
+
+module.exports.Client = require('./client.js').Client;
+module.exports.Service = require('./service.js').Service;
+module.exports.Protocol = require('./protocol.js').Protocol;
+module.exports.schemas = require('./schemas.js').schemas;
+module.exports.BroadcastGroup = require('./broadcast.js').BroadcastGroup;
+module.exports.Server = require('./server.js').Server;
