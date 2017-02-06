@@ -618,7 +618,7 @@ var JSON = module.exports;
             mind = gap,
             partial,
             value = holder[key],
-            isBigNumber = value instanceof BigNumber;
+            isBigNumber = value != null && (value instanceof BigNumber || value.isBigNumber);;
 
 // If the value has a toJSON method, call it to obtain a replacement value.
 
@@ -786,21 +786,21 @@ var JSON = module.exports;
 }());
 
 },{"bignumber.js":5}],5:[function(require,module,exports){
-/*! bignumber.js v2.4.0 https://github.com/MikeMcl/bignumber.js/LICENCE */
+/*! bignumber.js v4.0.0 https://github.com/MikeMcl/bignumber.js/LICENCE */
 
 ;(function (globalObj) {
     'use strict';
 
     /*
-      bignumber.js v2.4.0
+      bignumber.js v4.0.0
       A JavaScript library for arbitrary-precision arithmetic.
       https://github.com/MikeMcl/bignumber.js
-      Copyright (c) 2016 Michael Mclaughlin <M8ch88l@gmail.com>
+      Copyright (c) 2017 Michael Mclaughlin <M8ch88l@gmail.com>
       MIT Expat Licence
     */
 
 
-    var BigNumber, cryptoObj, parseNumeric,
+    var BigNumber,
         isNumeric = /^-?(\d+(\.\d*)?|\.\d+)(e[+-]?\d+)?$/i,
         mathceil = Math.ceil,
         mathfloor = Math.floor,
@@ -822,14 +822,12 @@ var JSON = module.exports;
          */
         MAX = 1E9;                                   // 0 to MAX_INT32
 
-    if ( typeof crypto != 'undefined' ) cryptoObj = crypto;
-
 
     /*
      * Create and return a BigNumber constructor.
      */
-    function constructorFactory(configObj) {
-        var div,
+    function constructorFactory(config) {
+        var div, parseNumeric,
 
             // id tracks the caller function, so its name can be included in error messages.
             id = 0,
@@ -915,7 +913,7 @@ var JSON = module.exports;
 
             // The maximum number of significant digits of the result of the toPower operation.
             // If POW_PRECISION is 0, there will be unlimited significant digits.
-            POW_PRECISION = 100,                     // 0 to MAX
+            POW_PRECISION = 0,                       // 0 to MAX
 
             // The format specification used by the BigNumber.prototype.toFormat method.
             FORMAT = {
@@ -1152,7 +1150,7 @@ var JSON = module.exports;
          * Ignore properties/parameters set to null or undefined.
          * Return an object with the properties current values.
          */
-        BigNumber.config = function () {
+        BigNumber.config = BigNumber.set = function () {
             var v, p,
                 i = 0,
                 r = {},
@@ -1232,9 +1230,19 @@ var JSON = module.exports;
             // 'config() crypto unavailable: {crypto}'
             if ( has( p = 'CRYPTO' ) ) {
 
-                if ( v === !!v || v === 1 || v === 0 ) {
-                    CRYPTO = !!( v && cryptoObj );
-                    if ( v && !CRYPTO && ERRORS ) raise( 2, 'crypto unavailable', cryptoObj );
+                if ( v === true || v === false || v === 1 || v === 0 ) {
+                    if (v) {
+                        v = typeof crypto == 'undefined';
+                        if ( !v && crypto && (crypto.getRandomValues || crypto.randomBytes)) {
+                            CRYPTO = true;
+                        } else if (ERRORS) {
+                            raise( 2, 'crypto unavailable', v ? void 0 : crypto );
+                        } else {
+                            CRYPTO = false;
+                        }
+                    } else {
+                        CRYPTO = false;
+                    }
                 } else if (ERRORS) {
                     raise( 2, p + notBool, v );
                 }
@@ -1324,9 +1332,9 @@ var JSON = module.exports;
                 if (CRYPTO) {
 
                     // Browsers supporting crypto.getRandomValues.
-                    if ( cryptoObj && cryptoObj.getRandomValues ) {
+                    if (crypto.getRandomValues) {
 
-                        a = cryptoObj.getRandomValues( new Uint32Array( k *= 2 ) );
+                        a = crypto.getRandomValues( new Uint32Array( k *= 2 ) );
 
                         for ( ; i < k; ) {
 
@@ -1343,7 +1351,7 @@ var JSON = module.exports;
                             // Probability that v >= 9e15, is
                             // 7199254740992 / 9007199254740992 ~= 0.0008, i.e. 1 in 1251
                             if ( v >= 9e15 ) {
-                                b = cryptoObj.getRandomValues( new Uint32Array(2) );
+                                b = crypto.getRandomValues( new Uint32Array(2) );
                                 a[i] = b[0];
                                 a[i + 1] = b[1];
                             } else {
@@ -1357,10 +1365,10 @@ var JSON = module.exports;
                         i = k / 2;
 
                     // Node.js supporting crypto.randomBytes.
-                    } else if ( cryptoObj && cryptoObj.randomBytes ) {
+                    } else if (crypto.randomBytes) {
 
                         // buffer
-                        a = cryptoObj.randomBytes( k *= 7 );
+                        a = crypto.randomBytes( k *= 7 );
 
                         for ( ; i < k; ) {
 
@@ -1373,7 +1381,7 @@ var JSON = module.exports;
                                   ( a[i + 4] << 16 ) + ( a[i + 5] << 8 ) + a[i + 6];
 
                             if ( v >= 9e15 ) {
-                                cryptoObj.randomBytes(7).copy( a, i );
+                                crypto.randomBytes(7).copy( a, i );
                             } else {
 
                                 // 0 <= (v % 1e14) <= 99999999999999
@@ -1382,13 +1390,14 @@ var JSON = module.exports;
                             }
                         }
                         i = k / 7;
-                    } else if (ERRORS) {
-                        raise( 14, 'crypto unavailable', cryptoObj );
+                    } else {
+                        CRYPTO = false;
+                        if (ERRORS) raise( 14, 'crypto unavailable', crypto );
                     }
                 }
 
-                // Use Math.random: CRYPTO is false or crypto is unavailable and ERRORS is false.
-                if (!i) {
+                // Use Math.random.
+                if (!CRYPTO) {
 
                     for ( ; i < k; ) {
                         v = random53bitInt();
@@ -1598,7 +1607,7 @@ var JSON = module.exports;
                       // Return NaN if either NaN, or both Infinity or 0.
                       !x.s || !y.s || ( xc ? yc && xc[0] == yc[0] : !yc ) ? NaN :
 
-                        // Return ±0 if x is ±0 or y is ±Infinity, or return ±Infinity as y is ±0.
+                        // Return Â±0 if x is Â±0 or y is Â±Infinity, or return Â±Infinity as y is Â±0.
                         xc && xc[0] == 0 || !yc ? s * 0 : s / 0
                     );
                 }
@@ -1930,7 +1939,7 @@ var JSON = module.exports;
                 var base,
                     s = num ? str : str.replace( whitespaceOrPlus, '' );
 
-                // No exception on ±Infinity or NaN.
+                // No exception on Â±Infinity or NaN.
                 if ( isInfinityOrNaN.test(s) ) {
                     x.s = isNaN(s) ? null : s < 0 ? -1 : 1;
                 } else {
@@ -2201,7 +2210,7 @@ var JSON = module.exports;
 
         /*
          * Return the number of decimal places of the value of this BigNumber, or null if the value
-         * of this BigNumber is ±Infinity or NaN.
+         * of this BigNumber is Â±Infinity or NaN.
          */
         P.decimalPlaces = P.dp = function () {
             var n, v,
@@ -2598,7 +2607,7 @@ var JSON = module.exports;
 
             if ( !xe || !ye ) {
 
-                // Return ±Infinity if either ±Infinity.
+                // Return Â±Infinity if either Â±Infinity.
                 if ( !xc || !yc ) return new BigNumber( a / 0 );
 
                 // Either zero?
@@ -2634,7 +2643,7 @@ var JSON = module.exports;
             // Only start adding at yc.length - 1 as the further digits of xc can be ignored.
             for ( a = 0; b; ) {
                 a = ( xc[--b] = xc[b] + yc[b] + a ) / BASE | 0;
-                xc[b] %= BASE;
+                xc[b] = BASE === xc[b] ? 0 : xc[b] % BASE;
             }
 
             if (a) {
@@ -2714,7 +2723,7 @@ var JSON = module.exports;
          *
          * k {number} Integer, -MAX_SAFE_INTEGER to MAX_SAFE_INTEGER inclusive.
          *
-         * If k is out of range and ERRORS is false, the result will be ±0 if k < 0, or ±Infinity
+         * If k is out of range and ERRORS is false, the result will be Â±0 if k < 0, or Â±Infinity
          * otherwise.
          *
          * 'shift() argument not an integer: {k}'
@@ -2870,7 +2879,7 @@ var JSON = module.exports;
                 xc = x.c,
                 yc = ( id = 17, y = new BigNumber( y, b ) ).c;
 
-            // Either NaN, ±Infinity or ±0?
+            // Either NaN, Â±Infinity or Â±0?
             if ( !xc || !yc || !xc[0] || !yc[0] ) {
 
                 // Return NaN if either is NaN, or one is 0 and the other is Infinity.
@@ -2879,11 +2888,11 @@ var JSON = module.exports;
                 } else {
                     y.s *= x.s;
 
-                    // Return ±Infinity if either is ±Infinity.
+                    // Return Â±Infinity if either is Â±Infinity.
                     if ( !xc || !yc ) {
                         y.c = y.e = null;
 
-                    // Return ±0 if either is ±0.
+                    // Return Â±0 if either is Â±0.
                     } else {
                         y.c = [0];
                         y.e = 0;
@@ -3177,7 +3186,7 @@ var JSON = module.exports;
                 m = new BigNumber(m);
             }
 
-            // Pass ±Infinity to Math.pow if exponent is out of range.
+            // Pass Â±Infinity to Math.pow if exponent is out of range.
             if ( !isValidInt( n, -MAX_SAFE_INTEGER, MAX_SAFE_INTEGER, 23, 'exponent' ) &&
               ( !isFinite(n) || i > MAX_SAFE_INTEGER && ( n /= 0 ) ||
                 parseFloat(n) != n && !( n = NaN ) ) || n == 0 ) {
@@ -3307,7 +3316,6 @@ var JSON = module.exports;
         };
 
 
-
         /*
          * Return as toString, but do not accept a base argument, and include the minus sign for
          * negative zero.
@@ -3329,17 +3337,9 @@ var JSON = module.exports;
         };
 
 
-        // Aliases for BigDecimal methods.
-        //P.add = P.plus;         // P.add included above
-        //P.subtract = P.minus;   // P.sub included above
-        //P.multiply = P.times;   // P.mul included above
-        //P.divide = P.div;
-        //P.remainder = P.mod;
-        //P.compareTo = P.cmp;
-        //P.negate = P.neg;
+        P.isBigNumber = true;
 
-
-        if ( configObj != null ) BigNumber.config(configObj);
+        if ( config != null ) BigNumber.config(config);
 
         return BigNumber;
     }
@@ -3513,9 +3513,6 @@ var JSON = module.exports;
     // Node.js and other environments that support module.exports.
     } else if ( typeof module != 'undefined' && module.exports ) {
         module.exports = BigNumber;
-
-        // Split string stops browserify adding crypto shim.
-        if ( !cryptoObj ) try { cryptoObj = require('cry' + 'pto'); } catch (e) {}
 
     // Browser.
     } else {
@@ -3843,7 +3840,7 @@ module.exports = WebSocket;
 },{}],11:[function(require,module,exports){
 (function (global){
 /**
- * TCF Channel inteface 
+ * TCF Channel inteface
  * @module tcf/channel
  * @license
  * Copyright (c) 2016 Wind River Systems
@@ -3874,7 +3871,6 @@ if (typeof global !== 'undefined') {
 
 var promise = Promise;
 var utils = require('./utils.js');
-var JSONbig = require('json-bigint');
 
 var channelId = 0;
 
@@ -3909,8 +3905,8 @@ var MARKER_EOS = -2;
 var OBUF_SIZE = 1024 * 128;
 
 /**
- * @class 
- * @param {Protocol} protocol - definition of local services 
+ * @class
+ * @param {Protocol} protocol - definition of local services
  */
 function Channel(protocol) {
     var ibuf;
@@ -3930,6 +3926,9 @@ function Channel(protocol) {
     var hasZeroCopySupport = false;
 
     setProtocol(protocol);
+
+    var options = require('./options.js').get();
+    var JSONbig = require('json-bigint')({storeAsString: options.bigNumAsString});
 
     var enableZeroCopy = function(enable) {
         hasZeroCopySupport = enable;
@@ -3973,7 +3972,7 @@ function Channel(protocol) {
         });
         return pres;
     };
-    
+
     var writeStream = function(ch) {
         utils.assert(owrite < obuf.length);
         if (ch == MARKER_EOM) {
@@ -4177,7 +4176,7 @@ function Channel(protocol) {
                 writeStream(MARKER_EOM);
             })
             .catch(function(err) {
-                // close the channel 
+                // close the channel
                 console.log ('TCF protocol Error', err);
             });
         }
@@ -4224,7 +4223,7 @@ function Channel(protocol) {
                 var eargsParsers = evhandler.parsers; // proto.getEventArgsParsers(msg.service, msg.name);
                 var eargs = [];
                 var ev_idx = 0;
-                
+
                 while (peekStream() != MARKER_EOM) {
                     if (eargsParsers[ev_idx] === 'binary') {
                         eargs.push(atob(JSONbig.parse(readStringz())));
@@ -4398,7 +4397,7 @@ function Channel(protocol) {
             if (state === ChannelState.Disconnected) return;
 
             writeStream(MARKER_EOS);
-            writeErrorObject(null);
+            writeStringz("null");
             writeStream(MARKER_EOM);
 
             state = ChannelState.Disconnected;
@@ -4422,7 +4421,7 @@ function Channel(protocol) {
                 service: service,
                 name: name,
                 parsers: parsers || [],
-                handler: eh                
+                handler: eh
             });
         },
         getState: function() {
@@ -4449,7 +4448,7 @@ exports.add_transport = add_transport;
 exports.get_transport = get_transport;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./utils.js":37,"atob":1,"btoa":1,"json-bigint":2}],12:[function(require,module,exports){
+},{"./options.js":14,"./utils.js":38,"atob":1,"btoa":1,"json-bigint":2}],12:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -4785,7 +4784,44 @@ function channelClient(ps, options) {
     return cc;
 }
 
-},{"./channel.js":11,"./peer.js":14,"./protocol.js":15,"./services/interfaces.js":18,"./services/proxy.js":34}],14:[function(require,module,exports){
+},{"./channel.js":11,"./peer.js":15,"./protocol.js":16,"./services/interfaces.js":19,"./services/proxy.js":35}],14:[function(require,module,exports){
+/**
+ * Library Options Support
+ *
+ * Copyright (c) 2016 Wind River Systems
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+var options = {
+    bigNumAsString: true
+};
+
+exports.get = function() {
+    return options;
+};
+
+exports.set = function(opts) {
+    options = Object.assign(options, opts);
+};
+
+},{}],15:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -4918,7 +4954,7 @@ var peerFromUrl = function peerFromUrl(url) {
 module.exports = {
     peer_from_url: peer_from_url
 };
-},{"./utils.js":37}],15:[function(require,module,exports){
+},{"./utils.js":38}],16:[function(require,module,exports){
 /**
  * TCF Protocol interface 
  * @module tcf/protocol
@@ -5016,7 +5052,7 @@ Protocol.prototype.getServiceList = function () {
 exports.Protocol = Protocol;
 
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5043,7 +5079,7 @@ exports.schemas = {
     'ctxId': {type: 'string'}
 };
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5142,7 +5178,7 @@ Service.prototype.exec = function (cmd, args) {
 exports.Broadcast = Broadcast;
 exports.Service = Service;
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5199,7 +5235,7 @@ module.exports = {
     removeService: removeService,
 };
 
-},{"../utils.js":37,"./interfaces/expressions.js":19,"./interfaces/filesystem.js":20,"./interfaces/linenumbers.js":21,"./interfaces/locator.js":22,"./interfaces/memory.js":23,"./interfaces/memorymap.js":24,"./interfaces/pathmap.js":25,"./interfaces/processesv1.js":26,"./interfaces/profiler.js":27,"./interfaces/runcontrol.js":28,"./interfaces/stacktrace.js":29,"./interfaces/streams.js":30,"./interfaces/symbols.js":31,"./interfaces/sysmonitor.js":32,"./interfaces/terminals.js":33}],19:[function(require,module,exports){
+},{"../utils.js":38,"./interfaces/expressions.js":20,"./interfaces/filesystem.js":21,"./interfaces/linenumbers.js":22,"./interfaces/locator.js":23,"./interfaces/memory.js":24,"./interfaces/memorymap.js":25,"./interfaces/pathmap.js":26,"./interfaces/processesv1.js":27,"./interfaces/profiler.js":28,"./interfaces/runcontrol.js":29,"./interfaces/stacktrace.js":30,"./interfaces/streams.js":31,"./interfaces/symbols.js":32,"./interfaces/sysmonitor.js":33,"./interfaces/terminals.js":34}],20:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5241,7 +5277,7 @@ module.exports = {
     evs: []
 };
 
-},{"../schemas.js":35}],20:[function(require,module,exports){
+},{"../schemas.js":36}],21:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5329,7 +5365,7 @@ module.exports.FileAttrs = {
     */
 };
 
-},{"../schemas.js":35}],21:[function(require,module,exports){
+},{"../schemas.js":36}],22:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5366,7 +5402,7 @@ module.exports = {
 };
 
 
-},{"../schemas.js":35}],22:[function(require,module,exports){
+},{"../schemas.js":36}],23:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5399,17 +5435,17 @@ module.exports = {
     cmds: [
         {name: "sync", args:[], results: []},
         {name: "redirect", args:[types.peer], results: [types.err]},
-        // C • <token> • Locator • getPeers •
-        // R • <token> • <error report> • <array of peer attributes> •
+        // C â€¢ <token> â€¢ Locator â€¢ getPeers â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢ <array of peer attributes> â€¢
         {name: "getPeers", args:[], results: [types.err, attrsList]},
-        // C • <token> • Locator • getAgentID •
-        // R • <token> • <error report> • <string: agentID> •
+        // C â€¢ <token> â€¢ Locator â€¢ getAgentID â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢ <string: agentID> â€¢
         {name: "getAgentID", args:[], results: [types.err, agentID]},
     ],
     evs: []
 };
 
-},{"../schemas.js":35}],23:[function(require,module,exports){
+},{"../schemas.js":36}],24:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5458,7 +5494,7 @@ module.exports.Modes = {
     MM_VERIFY: 2 /*  verify data */
 };
 
-},{"../schemas.js":35}],24:[function(require,module,exports){
+},{"../schemas.js":36}],25:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5492,7 +5528,7 @@ module.exports = {
     evs: []
 };
 
-},{"../schemas.js":35}],25:[function(require,module,exports){
+},{"../schemas.js":36}],26:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5527,7 +5563,7 @@ module.exports = {
 };
 
 
-},{"../schemas.js":35}],26:[function(require,module,exports){
+},{"../schemas.js":36}],27:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5564,37 +5600,37 @@ module.exports = {
     cmds: [
         cmds.getContext,
         { name: "getChildren", args: [types.ctxID, types.boolean], results: [types.err, types.ctxIDs] },
-        // C • <token> • Processes • attach • <string: context ID> •
-        // R • <token> • <error report> •
+        // C â€¢ <token> â€¢ Processes â€¢ attach â€¢ <string: context ID> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢
         { name: "attach", args: [types.ctxID], results: [types.err] },
-        // C • <token> • Processes • detach • <string: context ID> •
-        // R • <token> • <error report> •
+        // C â€¢ <token> â€¢ Processes â€¢ detach â€¢ <string: context ID> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢
         { name: "detach", args: [types.ctxID], results: [types.err] },
-        // C • <token> • Processes • terminate • <string: context ID> •
-        // R • <token> • <error report> •
+        // C â€¢ <token> â€¢ Processes â€¢ terminate â€¢ <string: context ID> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢
         { name: "terminate", args: [types.ctxID], results: [types.err] },
-        // C • <token> • Processes • getSignalList • <string: context ID> •
-        // R • <token> • <error report> • <array of signal descriptions> •
+        // C â€¢ <token> â€¢ Processes â€¢ getSignalList â€¢ <string: context ID> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢ <array of signal descriptions> â€¢
         { name: "getSignalList", args: [types.ctxID], results: [types.err, signals] },
-        // C • <token> • Processes • getSignalMask • <string: context ID> •
-        // R • <token> • <error report> • <int: don't stop bitset> • <int: don't pass bitset> • <int: pending bitset> •
+        // C â€¢ <token> â€¢ Processes â€¢ getSignalMask â€¢ <string: context ID> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢ <int: don't stop bitset> â€¢ <int: don't pass bitset> â€¢ <int: pending bitset> â€¢
         { name: "getSignalMask", args: [types.ctxID], results: [types.err, dont_stop, dont_pass, pending] },
-        // C • <token> • Processes • setSignalMask • <string: context ID> • <int: don't stop bitset> • <int: don't pass bitset> •
-        // R • <token> • <error report> •
+        // C â€¢ <token> â€¢ Processes â€¢ setSignalMask â€¢ <string: context ID> â€¢ <int: don't stop bitset> â€¢ <int: don't pass bitset> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢
         { name: "setSignalMask", args: [types.ctxID, dont_stop, dont_pass], results: [types.err] },
-        // C • <token> • Processes • signal • <string: context ID> • <int: signal> •
-        // R • <token> • <error report> •
+        // C â€¢ <token> â€¢ Processes â€¢ signal â€¢ <string: context ID> â€¢ <int: signal> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢
         { name: "signal", args: [types.ctxID, types.integer], results: [types.err] },
-        // C • <token> • Processes • getEnvironment •
-        // R • <token> • <error report> • <string array: environment variables> •
+        // C â€¢ <token> â€¢ Processes â€¢ getEnvironment â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢ <string array: environment variables> â€¢
         { name: "getEnvironment", args: [], results: [types.err, env] },
-        // C • <token> • Processes • start • <string: working directory> • <string: program image file> •
-        //     <string array: command line> • <string array: environment variables> • <boolean: attach> •
-        // R • <token> • <error report> • <context data> •
+        // C â€¢ <token> â€¢ Processes â€¢ start â€¢ <string: working directory> â€¢ <string: program image file> â€¢
+        //     <string array: command line> â€¢ <string array: environment variables> â€¢ <boolean: attach> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢ <context data> â€¢
         { name: "start", args: [types.string, types.string, types.string, types.string, types.boolean], results: [types.err, types.odata] },
-        // C • <token> • Processes • start • <string: working directory> • <string: program image file> •
-        //     <string array: command line> • <string array: environment variables> • <object: options> •
-        // R • <token> • <error report> • <context data> •
+        // C â€¢ <token> â€¢ Processes â€¢ start â€¢ <string: working directory> â€¢ <string: program image file> â€¢
+        //     <string array: command line> â€¢ <string array: environment variables> â€¢ <object: options> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢ <context data> â€¢
         // options supported :
         //         Attach: boolean
         //  AttachChildren: boolean
@@ -5604,18 +5640,18 @@ module.exports = {
         //  SigDontStop: regsig
         //  SigDontPass: regsig
         { name: "startv1", cmd: "start", args: [types.string, types.string, types.string, types.string, types.object], results: [types.err, types.odata] },
-        // C • <token> • Processes • setWinSize •  <string: context ID> • <int: columns> • <int: raws> •
-        // R • <token> • <error report> •
+        // C â€¢ <token> â€¢ Processes â€¢ setWinSize â€¢  <string: context ID> â€¢ <int: columns> â€¢ <int: raws> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢
         { name: "setWinSize", args: [types.ctxID, types.integer, types.integer], results: [types.err] },
 
     ],
     evs: [
-        // E • Processes • exited • <string: process ID> • <int: exit code> •
+        // E â€¢ Processes â€¢ exited â€¢ <string: process ID> â€¢ <int: exit code> â€¢
         { name: "exited", args: [{ title: 'procID', type: 'string' }, { title: 'exit_code', type: 'integer' }]}
     ]
 };
 
-},{"../schemas.js":35}],27:[function(require,module,exports){
+},{"../schemas.js":36}],28:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5651,7 +5687,7 @@ module.exports = {
     evs: []
 };
 
-},{"../schemas.js":35}],28:[function(require,module,exports){
+},{"../schemas.js":36}],29:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5689,42 +5725,42 @@ module.exports = {
     cmds: [
         cmds.getContext,
         cmds.getChildren,
-        // C • <token> • RunControl • getState • <string: context ID> •
-        // R • <token> • <error report> • <boolean: suspended> •
-        //    <int: PC> • <string: last state change reason> • <state data> •
+        // C â€¢ <token> â€¢ RunControl â€¢ getState â€¢ <string: context ID> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢ <boolean: suspended> â€¢
+        //    <int: PC> â€¢ <string: last state change reason> â€¢ <state data> â€¢
         { name: "getState", args: [types.id], results: [types.err, suspended, PC, reason, types.odata] },
-        // C • <token> • RunControl • resume • <string: context ID> • <int: mode> • <int: count> •
-        // C • <token> • RunControl • resume • <string: context ID> • <int: mode> • <int: count> • <object: parameters> •
-        // R • <token> • <error report> •
+        // C â€¢ <token> â€¢ RunControl â€¢ resume â€¢ <string: context ID> â€¢ <int: mode> â€¢ <int: count> â€¢
+        // C â€¢ <token> â€¢ RunControl â€¢ resume â€¢ <string: context ID> â€¢ <int: mode> â€¢ <int: count> â€¢ <object: parameters> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢
         { name: "resume", args: [types.id, types.integer, types.integer, { type: 'object', required: false }], results: [types.err] },
-        // C • <token> • RunControl • suspend • <string: context ID> •
-        // R • <token> • <error report> •
+        // C â€¢ <token> â€¢ RunControl â€¢ suspend â€¢ <string: context ID> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢
         { name: "suspend", args: [types.id], results: [types.err] },
-        // C • <token> • RunControl • terminate • <string: context ID> •
-        // R • <token> • <error report> •
+        // C â€¢ <token> â€¢ RunControl â€¢ terminate â€¢ <string: context ID> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢
         { name: "terminate", args: [types.id], results: [types.err] },
-        // C • <token> • RunControl • detach • <string: context ID> •
-        // R • <token> • <error report> •
+        // C â€¢ <token> â€¢ RunControl â€¢ detach â€¢ <string: context ID> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢
         { name: "detach", args: [types.id], results: [types.err] },
     ],
     evs: [
-        // E • RunControl • contextAdded • <array of context data> •
+        // E â€¢ RunControl â€¢ contextAdded â€¢ <array of context data> â€¢
         { name: "contextAdded", args: [ctxDataList] },
-        // E • RunControl • contextChanged • <array of context data> •
+        // E â€¢ RunControl â€¢ contextChanged â€¢ <array of context data> â€¢
         { name: "contextChanged", args: [ctxDataList] },
-        // E • RunControl • contextRemoved • <array of context IDs> •
+        // E â€¢ RunControl â€¢ contextRemoved â€¢ <array of context IDs> â€¢
         { name: "contextRemoved", args: [ctxList] },
-        // E • RunControl • contextSuspended • <string: context ID> • <int: PC> •
-        //     <string: reason> • <state data> •
+        // E â€¢ RunControl â€¢ contextSuspended â€¢ <string: context ID> â€¢ <int: PC> â€¢
+        //     <string: reason> â€¢ <state data> â€¢
         { name: "contextSuspended", args: [types.ctxID, PC, reason, state_data] },
-        // E • RunControl • contextResumed • <string: context ID> •
+        // E â€¢ RunControl â€¢ contextResumed â€¢ <string: context ID> â€¢
         { name: "contextResumed", args: [types.ctxID] },
-        // E • RunControl • contextException • <string: context ID> • <string: description> •
+        // E â€¢ RunControl â€¢ contextException â€¢ <string: context ID> â€¢ <string: description> â€¢
         { name: "contextException", args: [types.ctxID, { title: 'description', type: 'string' }] },
-        // E • RunControl • containerSuspended • <string: context ID> • <int: PC> •
-        //     <string: reason> • <state data> • <array of context IDs> •
+        // E â€¢ RunControl â€¢ containerSuspended â€¢ <string: context ID> â€¢ <int: PC> â€¢
+        //     <string: reason> â€¢ <state data> â€¢ <array of context IDs> â€¢
         { name: "containerSuspended", args: [types.ctxID, PC, reason, state_data, ctxList] },
-        // E • RunControl • containerResumed • <array of context IDs> •
+        // E â€¢ RunControl â€¢ containerResumed â€¢ <array of context IDs> â€¢
         { name: "containerResumed", args: [ctxList] },
     ]
 };
@@ -5774,7 +5810,7 @@ module.exports.ResumeModes = {
     RM_UNDEF: 19
 };
 
-},{"../schemas.js":35}],29:[function(require,module,exports){
+},{"../schemas.js":36}],30:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5806,8 +5842,8 @@ var frames = {title: 'frames', type: 'array'};
 module.exports = {
     name: "StackTrace",
     cmds: [
-        // C • <token> • StackTrace • getContext • <array of context IDs> •
-        // R • <token> • <array of context data> • <error report> •
+        // C â€¢ <token> â€¢ StackTrace â€¢ getContext â€¢ <array of context IDs> â€¢
+        // R â€¢ <token> â€¢ <array of context data> â€¢ <error report> â€¢
         {name: "getContext", args:[frameIDs], results: [frames, types.err]},
         cmds.getChildren,
         {name: "getChildrenRange", args:[types.ctxID, types.integer, types.integer], results: [types.err, types.ctxIDs]},
@@ -5815,7 +5851,7 @@ module.exports = {
     evs: []
 };
 
-},{"../schemas.js":35}],30:[function(require,module,exports){
+},{"../schemas.js":36}],31:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5852,14 +5888,14 @@ module.exports = {
         {name: "disconnect", args:[scs.streamID], results: [scs.err]},
     ],
     evs: [
-        // E • Streams • created • <string: type> • <string: stream ID> • <string: context ID> •
+        // E â€¢ Streams â€¢ created â€¢ <string: type> â€¢ <string: stream ID> â€¢ <string: context ID> â€¢
         {name: "created", args: [{title : 'type', type: 'string'}, scs.streamID, scs.ctxID] },
-        // E • Streams • disposed • <string: type> • <string: stream ID> • 
+        // E â€¢ Streams â€¢ disposed â€¢ <string: type> â€¢ <string: stream ID> â€¢ 
         {name: "disposed", args: [{title : 'type', type: 'string'}, scs.streamID] }
     ]
 }
 
-},{"../schemas.js":35}],31:[function(require,module,exports){
+},{"../schemas.js":36}],32:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5945,7 +5981,7 @@ module.exports.SymbolClass = {
     variant: 9 // A member of a variant part of a structure (since TCF 1.3)
 };
 
-},{"../schemas.js":35}],32:[function(require,module,exports){
+},{"../schemas.js":36}],33:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5983,7 +6019,7 @@ module.exports = {
     evs: []
 };
 
-},{"../schemas.js":35}],33:[function(require,module,exports){
+},{"../schemas.js":36}],34:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -6013,26 +6049,26 @@ module.exports = {
     name: "Terminals",
     cmds: [
         cmds.getContext,
-        // C • <token> • Terminals • launch • <string: pty type> • <string: encoding> •
-        //     <string array: environment variables> •
-        // R • <token> • <error report> • <context data> •
+        // C â€¢ <token> â€¢ Terminals â€¢ launch â€¢ <string: pty type> â€¢ <string: encoding> â€¢
+        //     <string array: environment variables> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢ <context data> â€¢
         {name: "launch", args:[scs.string, scs.string, scs.string], results: [scs.err, scs.ctxData]},
-        // C • <token> • Terminals • exit • <string: context ID> •
-        // R • <token> • <error report> •
+        // C â€¢ <token> â€¢ Terminals â€¢ exit â€¢ <string: context ID> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢
         {name: "exit", args:[scs.ctxID], results: [scs.err]},
-        // C • <token> • Terminals • setWinSize • <string: context ID> • <integer: newWidth> • <integer: newHeight> •
-        // R • <token> • <error report> •
+        // C â€¢ <token> â€¢ Terminals â€¢ setWinSize â€¢ <string: context ID> â€¢ <integer: newWidth> â€¢ <integer: newHeight> â€¢
+        // R â€¢ <token> â€¢ <error report> â€¢
         {name: "setWinSize", args:[scs.ctxID, scs.integer, scs.integer], results: [scs.err]},
     ],
     evs: [
-        // E • Terminals • exited • <string: terminal ID> • <int: exit code> •
+        // E â€¢ Terminals â€¢ exited â€¢ <string: terminal ID> â€¢ <int: exit code> â€¢
         {name: "exited", args: [scs.ID, {title : 'exit_code', type: 'integer'}] },
-        // E • Terminals • winSizeChanged • <string: terminal ID> • <int: newWidth> • <int: newHeight> •
+        // E â€¢ Terminals â€¢ winSizeChanged â€¢ <string: terminal ID> â€¢ <int: newWidth> â€¢ <int: newHeight> â€¢
         {name: "winSizeChanged", args: [scs.ID, {title : 'width', type: 'integer'}, {title : 'height', type: 'integer'}] }        
     ] 
 }
 
-},{"../schemas.js":35}],34:[function(require,module,exports){
+},{"../schemas.js":36}],35:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -6131,7 +6167,7 @@ module.exports = function  Proxy(svcInterface, c) {
 }
 
 
-},{}],35:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -6181,7 +6217,7 @@ module.exports = {
     }
 }
 
-},{}],36:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 /**
  * Top level TCF library module
  * @module tcf
@@ -6213,23 +6249,41 @@ module.exports = {
  */
 
 /**
- * @typedef {string} PeerUrl - string representing a peer url. 
- * @example "WS::8080" server running on localhost on port 8080 (all interfaces) 
- * @example "TCP::9000" server running on localhost on port 900 (all interfaces) 
- * @example "WSS:192.168.1.1:443" 
+ * @typedef {string} PeerUrl - string representing a peer url.
+ * @example "WS::8080" server running on localhost on port 8080 (all interfaces)
+ * @example "TCP::9000" server running on localhost on port 900 (all interfaces)
+ * @example "WSS:192.168.1.1:443"
  * @example "wss://192.168.1.1/"
  */
 
 /* global exports */
-require('./transports.js');
-exports.Client = require('./client.js').Client;
-exports.Service = require('./service.js').Service;
-exports.Protocol = require('./protocol.js').Protocol;
-exports.schemas = require('./schemas.js').schemas;
-exports.BroadcastGroup = require('./broadcast.js').BroadcastGroup;
-exports.Server = require('./server.js').Server;
 
-},{"./broadcast.js":8,"./client.js":13,"./protocol.js":15,"./schemas.js":16,"./server.js":1,"./service.js":17,"./transports.js":9}],37:[function(require,module,exports){
+require('./transports.js');
+
+module.exports = function(options) {
+
+    require('./options').set(options);
+
+    return  {
+        Client: require('./client.js').Client,
+        Service: require('./service.js').Service,
+        Protocol: require('./protocol.js').Protocol,
+        schemas: require('./schemas.js').schemas,
+        BroadcastGroup: require('./broadcast.js').BroadcastGroup,
+        Server: require('./server.js').Server
+    };
+};
+
+// create the default method members with no options applied for backwards compatibility
+
+module.exports.Client = require('./client.js').Client;
+module.exports.Service = require('./service.js').Service;
+module.exports.Protocol = require('./protocol.js').Protocol;
+module.exports.schemas = require('./schemas.js').schemas;
+module.exports.BroadcastGroup = require('./broadcast.js').BroadcastGroup;
+module.exports.Server = require('./server.js').Server;
+
+},{"./broadcast.js":8,"./client.js":13,"./options":14,"./protocol.js":16,"./schemas.js":17,"./server.js":1,"./service.js":18,"./transports.js":9}],38:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -6269,5 +6323,5 @@ module.exports = {
     assert: assert
 };
 
-},{"uuid":7}]},{},[36])(36)
+},{"uuid":7}]},{},[37])(37)
 });
