@@ -1,7 +1,7 @@
 /**
  * Library Options Support
  *
- * Copyright (c) 2016 Wind River Systems
+ * Copyright (c) 2017 Wind River Systems
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
