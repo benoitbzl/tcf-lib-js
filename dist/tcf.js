@@ -3841,7 +3841,6 @@ module.exports = WebSocket;
 (function (global){
 /**
  * TCF Channel inteface
- * @module tcf/channel
  * @license
  * Copyright (c) 2016 Wind River Systems
  *
@@ -3904,10 +3903,19 @@ var MARKER_EOM = -1;
 var MARKER_EOS = -2;
 var OBUF_SIZE = 1024 * 128;
 
+
 /**
+ * TCF channel
+ * @typedef {Object} Channel
+ */
+
+/*
+ * TCF channel
+ *
  * @class
  * @param {Protocol} protocol - definition of local services
  */
+
 function Channel(protocol) {
     var ibuf;
     var iread = 0;
@@ -4155,6 +4163,7 @@ function Channel(protocol) {
             var name = readStringz();
             var args = [];
             var cargsParsers = proto.getCommandArgsParsers(svc, name);
+            var res_idx = 0;
 
             /* parse arguments */
             while ((ch = peekStream()) != MARKER_EOM) {
@@ -4162,6 +4171,7 @@ function Channel(protocol) {
                     args.push(btoa(JSONbig.parse(readStringz())));
                 }
                 else args.push(JSONbig.parse(readStringz()));
+                res_idx++;
             }
 
             readStream(); //flush EOM
@@ -4186,7 +4196,7 @@ function Channel(protocol) {
             // get the reply handler
             var rh = popReplyHandler(msg.token);
             msg.res = {};
-            var res_idx = 0;
+            res_idx = 0;
             // build the result object
             while ((ch = peekStream()) != MARKER_EOM) {
                 if (ch === 0) {
@@ -4545,10 +4555,9 @@ function connectClientWS(ps, options) {
 }
 
 },{"./channel.js":11,"./channel_server_ws.js":2,"ws":10}],13:[function(require,module,exports){
-/**
- * TCF Client interface 
- * @module tcf/client
- * @license
+/*
+ * TCF Client interface
+ *
  * Copyright (c) 2016 Wind River Systems
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -4578,24 +4587,33 @@ var proto = require('./protocol.js');
 
 //===============================================================================
 // TCF services proxy definitions
-var svc_ifs = require('./services/interfaces.js').services;
+
+var defaultSvcIfs = require('./services/interfaces.js').services;
 var Proxy = require('./services/proxy.js');
 
 /**
- * Creates a new tcf client.
- * a tcf client is a channel and the corresponding set of tcf remote services 
- * proxies.
- * 
- * @class 
- * @param {Protocol} protocol - definition of client side services 
+ * Creates a new TCF client.
+ *
+ * A TCF client is used to connect to a TCF server through a set of proxies and
+ * can define a set of local service for the use of the server.
+ *
+ * @class
+ * @param {Interface[]} [interfaces] - List of supported proxy interfaces
+ * @param {Protocol} [protocol] - Definition of client side services
  */
-exports.Client = function Client(protocol) {
+exports.Client = function Client(interfaces, protocol) {
     var self = this;
 
+    if (arguments.length === 1 && !(interfaces instanceof Array)) {
+        // Support legacy contructor 'Client(protocol)'
+        protocol = arguments[0];
+        interfaces = undefined;
+    }
+
     /**
-     * remote service proxies hashtable. This property 
+     * remote service proxies hashtable. This property
      * is populated with the proxies for the corresponding remote peer services once the channel is connected
-     * @type {object} 
+     * @type {object}
      */
     this.svc = {};
     this.attrs = undefined;
@@ -4605,13 +4623,23 @@ exports.Client = function Client(protocol) {
     var c;
     var prot = protocol || new proto.Protocol();
 
+    var svcItf = defaultSvcIfs;
+
+    if (interfaces) {
+        // Replace default remote service interfaces with specified ones
+        svcItf = {};
+        interfaces.forEach(function(itf) {
+            svcItf[itf.name] = itf;
+        });
+    }
+
     /**
      * Establishes the connection to the peer
-     * @param {PeerUrl} url - string defining a peer url 
+     * @param {PeerUrl} url - string defining a peer url
      * @param {object|null} - Option object or null
      * @param {function} - callback upon successfull connection
-     * @param {function} - callback upon communication error 
-     * @param {function} - callback upon close 
+     * @param {function} - callback upon communication error
+     * @param {function} - callback upon close
      */
     this.connect = function connect(url, options, onconnect, onclose, onerror) {
         if (arguments.length > 1 && typeof options === "function") {
@@ -4663,8 +4691,8 @@ exports.Client = function Client(protocol) {
                     if (svcs[idx] == "ZeroCopy") {
                         continue;
                     }
-                    if (svc_ifs[svcs[idx]]) {
-                        self.svc[svcs[idx]] = new Proxy(svc_ifs[svcs[idx]], c);
+                    if (svcItf[svcs[idx]]) {
+                        self.svc[svcs[idx]] = new Proxy(svcItf[svcs[idx]], c);
                     }
                     else {
                         //console.log("WARNING: ignore unknown service " + svcs[idx]);
@@ -4726,8 +4754,8 @@ exports.Client = function Client(protocol) {
     };
 
     /**
-     * retreive the channel object associated with the Client
-     * @return {channel}
+     * Retreive the channel object associated with the Client
+     * @return {Channel}
      */
     this.getChannel = function () {
         return c;
@@ -4735,28 +4763,28 @@ exports.Client = function Client(protocol) {
 
 
     /**
-     * sends a TCF command over the client's channel
+     * Sends a TCF command over the client's channel
      * @param {string} service - TCF service name
      * @param {string} method - TCF service method name
      * @param {TcfArg_t[]}  args - list of command arguments
      * @param {string[]}  [parsers = [...'json']] - list of response arguments parsers
-     * @returns {promise<va_args>} promise will be rejected upon communication error 
-     * and fullfilled when the command response is received. Note that if the 
+     * @returns {promise<va_args>} promise will be rejected upon communication error
+     * and fullfilled when the command response is received. Note that if the
      * response contains a TCF error report, the promise is still fulfilled.
      */
-    this.sendCommand = function (args) {
+    this.sendCommand = function (service, method, args, parsers) {
         return c && c.sendCommand.apply(self, arguments);
     };
 
     /**
-     * sends a TCF event over the client's channel. The "E" message is sent 
+     * Sends a TCF event over the client's channel. The "E" message is sent
      * immediatly.
      * @param {string} service - TCF service name
      * @param {string} event - TCF service event name
      * @param {TcfArg_t[]}  [args] - list of event arguments
-     * 
+     *
      */
-    this.sendEvent = function (args) {
+    this.sendEvent = function (service, event, args) {
         return c && c.sendEvent.apply(self, arguments);
     };
 
@@ -4956,8 +4984,7 @@ module.exports = {
 };
 },{"./utils.js":39}],16:[function(require,module,exports){
 /**
- * TCF Protocol interface 
- * @module tcf/protocol
+ * TCF Protocol interface
  * @license
  * Copyright (c) 2016 Wind River Systems
  *
@@ -4981,24 +5008,25 @@ module.exports = {
  */
 
 /**
- * Protocol object holds the various command and events handlers implemented by 
+ * Protocol object holds the various command and events handlers implemented by
  * the peer.
- * 
- * @class 
+ *
+ * @class
  */
-var Protocol = function () {
+
+function Protocol() {
     this._svc = {};
     this._ev = {};
     this._svcList = [];
-};
+}
 
 /**
  * @typedef {function} CmdHandler
  * @param {Channel} c - channel requesting the command
  * @param {TcfArg_t[]}  args - array of command arguments
- * @returns {Promise|TcfArg_t[]} returns either a Promise that will be resolved 
+ * @returns {Promise|TcfArg_t[]} returns either a Promise that will be resolved
  * to a list of respose arguments or the list of response arguments
- * @throws {ProtocolError} - if arguments fail to comply to service spec. 
+ * @throws {ProtocolError} - if arguments fail to comply to service spec.
  * Note that protocol errors leads to immediate termination of the channel
  */
 
@@ -5007,14 +5035,14 @@ var Protocol = function () {
  * @param {Channel} c - channel sending the event
  * @param {TcfArg_t[]}  args - array of event arguments
  */
- 
+
 /**
  * Add a command handler
  * @param {string} svc - name of the service
  * @param {string} cmd - command name
  * @param {CmdHandler} ch - callback for handling the command
  * @param {string[]}  [parsers = [...'json']] - list of command argument parsers
- * 
+ *
  */
 Protocol.prototype.addCommandHandler = function(svc, cmd, ch, parsers) {
     if( !this._svc[svc] ) this._svc[svc] = {};
@@ -5048,6 +5076,7 @@ Protocol.prototype.getCommandArgsParsers = function (svc, cmd) {
 Protocol.prototype.getServiceList = function () {
     return this._svcList;
 };
+
 
 exports.Protocol = Protocol;
 
@@ -5179,7 +5208,9 @@ exports.Broadcast = Broadcast;
 exports.Service = Service;
 
 },{}],19:[function(require,module,exports){
-/**
+/*
+ * TCF Proxy interface
+ *
  * Copyright (c) 2016-2017 Wind River Systems
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -5200,7 +5231,23 @@ exports.Service = Service;
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 var utils = require('../utils.js');
+
+/**
+ * Command definition.
+ * @typedef {Object} CommandDef
+ * @property {string} name - Command name.
+ * @property {ParameterType[]} args - Command arguments definition.
+ * @property {ParameterType[]} results - Command results definition.
+ */
+
+/**
+ * Parameter type.
+ * @typedef {Object} ParameterType
+ * @property {string} [title] - Parameter access name.
+ * @property {string} type - Parameter type: 'object', 'binary', 'array', 'string', 'boolean', 'integer'.
+ */
 
 var services = {
     Expressions: require('./interfaces/expressions.js'),
@@ -5223,17 +5270,49 @@ var services = {
 
 function addService(prototype) {
     utils.assert (!services[prototype.name]);
-    services[prototype.name] = prototype;    
+    services[prototype.name] = prototype;
 };
 
 function removeService(name) {
-    delete services[name];    
+    delete services[name];
+}
+
+/**
+ * Creates a new service proxy interface
+ *
+ * @class
+ * @param {string} arg - Opensource service name
+ * @param {Object} arg - Service interface definition
+ * @param {string} arg.name - service name
+ * @param {CommandDef[]} [arg.cmds] - commands definitions
+ * @param {Object[]} [arg.evs] - events definition
+ */
+
+function Interface(arg) {
+
+    if (typeof arg !== 'string' && typeof arg !== 'object') {
+        throw new Error('Invalid argument ' + arg + ' for Interface constructor');
+    }
+
+    if (typeof arg === 'string') {
+        // args is one of the opensource interface name
+        var itf = services[arg];
+        if (!itf) throw new Error('Interface ' + arg + ' is not supported');
+        Object.assign(this, itf);
+    }
+    else {
+        if (!arg.name) throw new Error('Invalid interface object: missing name property');
+        this.name = arg.name;
+        this.cmds = arg.cmds || [];
+        this.evs = arg.evs || [];
+    }
 }
 
 module.exports = {
     services : services,
     addService: addService,
     removeService: removeService,
+    Interface: Interface
 };
 
 },{"../utils.js":39,"./interfaces/expressions.js":20,"./interfaces/filesystem.js":21,"./interfaces/linenumbers.js":22,"./interfaces/locator.js":23,"./interfaces/memory.js":24,"./interfaces/memorymap.js":25,"./interfaces/pathmap.js":26,"./interfaces/portforward.js":27,"./interfaces/processesv1.js":28,"./interfaces/profiler.js":29,"./interfaces/runcontrol.js":30,"./interfaces/stacktrace.js":31,"./interfaces/streams.js":32,"./interfaces/symbols.js":33,"./interfaces/sysmonitor.js":34,"./interfaces/terminals.js":35}],20:[function(require,module,exports){
@@ -6262,7 +6341,6 @@ module.exports = {
 },{}],38:[function(require,module,exports){
 /**
  * Top level TCF library module
- * @module tcf
  * @license
  * Copyright (c) 2016 Wind River Systems.
  *
@@ -6286,11 +6364,13 @@ module.exports = {
  */
 
 /**
+ * @global
  * @typedef {boolean|number|string|Object|Uint8Array} TcfArg_t - Defines the
  * different types of arguments for TCF commands, Events, or Response handling
  */
 
 /**
+ * @global
  * @typedef {string} PeerUrl - string representing a peer url.
  * @example "WS::8080" server running on localhost on port 8080 (all interfaces)
  * @example "TCP::9000" server running on localhost on port 900 (all interfaces)
@@ -6312,7 +6392,8 @@ module.exports = function(options) {
         Protocol: require('./protocol.js').Protocol,
         schemas: require('./schemas.js').schemas,
         BroadcastGroup: require('./broadcast.js').BroadcastGroup,
-        Server: require('./server.js').Server
+        Server: require('./server.js').Server,
+        Interface: require('./services/interfaces.js').Interface
     };
 };
 
@@ -6324,8 +6405,9 @@ module.exports.Protocol = require('./protocol.js').Protocol;
 module.exports.schemas = require('./schemas.js').schemas;
 module.exports.BroadcastGroup = require('./broadcast.js').BroadcastGroup;
 module.exports.Server = require('./server.js').Server;
+module.exports.Interface = require('./services/interfaces.js').Interface;
 
-},{"./broadcast.js":8,"./client.js":13,"./options":14,"./protocol.js":16,"./schemas.js":17,"./server.js":2,"./service.js":18,"./transports.js":9}],39:[function(require,module,exports){
+},{"./broadcast.js":8,"./client.js":13,"./options":14,"./protocol.js":16,"./schemas.js":17,"./server.js":2,"./service.js":18,"./services/interfaces.js":19,"./transports.js":9}],39:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *

@@ -140,4 +140,38 @@ describe('tcf-client', function () {
                 );
         });
     });
+
+
+    it('Define a client with a Pong service proxy interface', function () {
+        return new Promise ((resolve, reject) => {
+
+            var itf = new tcf.Interface({
+                name: 'Pong',
+                cmds: [{
+                    name: 'echo',
+                    args: [{type: 'string'}],
+                    results: [{title: 'err', type: 'number'}, {title: 'msg', type: 'string'}],
+                }]
+            });
+
+            var client = new tcf.Client([itf]);
+
+            client.connect(wsurl,
+                () => {
+                    client.svc['Pong'].echo('testmsg')
+                    .then((res) => {
+                        res.should.have.all.keys(['err', 'msg']);
+                        res.err.should.equal(0);
+                        res.msg.should.equal('testmsg');
+                        resolve();
+                        client.close();
+                    })
+                    .catch(err => {reject(err)});
+                },
+                () => {reject("channel Closed");},
+                () => {reject("channel Error");}
+                );
+        });
+    });
+
 });

@@ -1,7 +1,6 @@
-/**
- * Implementation of a TCF server 
- * @module tcf/server
- * @license
+/*
+ * Implementation of a TCF server
+ *
  * Copyright (c) 2016 Wind River Systems
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -57,14 +56,15 @@ function channelServer(ps) {
 
 /**
  * Creates a new tcf server.
- * a tcf client is a channel and the corresponding set of tcf remote services 
+ * a tcf client is a channel and the corresponding set of tcf remote services
  * proxies.
- * 
- * @class 
+ *
+ * @class
  * @param {PeerUrl} url - Defines the url of the server
- * @param {Protocol} protocol - definition of server side services 
+ * @param {Protocol} protocol - definition of server side services
  * @param {object} [options] - additionnal options
  */
+
 function Server(url, protocol, options) {
 
     this.ps = peer.peer_from_url(url);

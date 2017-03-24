@@ -1,6 +1,5 @@
 /**
  * TCF Channel inteface
- * @module tcf/channel
  * @license
  * Copyright (c) 2016 Wind River Systems
  *
@@ -63,10 +62,19 @@ var MARKER_EOM = -1;
 var MARKER_EOS = -2;
 var OBUF_SIZE = 1024 * 128;
 
+
 /**
+ * TCF channel
+ * @typedef {Object} Channel
+ */
+
+/*
+ * TCF channel
+ *
  * @class
  * @param {Protocol} protocol - definition of local services
  */
+
 function Channel(protocol) {
     var ibuf;
     var iread = 0;
@@ -314,6 +322,7 @@ function Channel(protocol) {
             var name = readStringz();
             var args = [];
             var cargsParsers = proto.getCommandArgsParsers(svc, name);
+            var res_idx = 0;
 
             /* parse arguments */
             while ((ch = peekStream()) != MARKER_EOM) {
@@ -321,6 +330,7 @@ function Channel(protocol) {
                     args.push(btoa(JSONbig.parse(readStringz())));
                 }
                 else args.push(JSONbig.parse(readStringz()));
+                res_idx++;
             }
 
             readStream(); //flush EOM
@@ -345,7 +355,7 @@ function Channel(protocol) {
             // get the reply handler
             var rh = popReplyHandler(msg.token);
             msg.res = {};
-            var res_idx = 0;
+            res_idx = 0;
             // build the result object
             while ((ch = peekStream()) != MARKER_EOM) {
                 if (ch === 0) {

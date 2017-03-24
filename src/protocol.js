@@ -1,6 +1,5 @@
 /**
- * TCF Protocol interface 
- * @module tcf/protocol
+ * TCF Protocol interface
  * @license
  * Copyright (c) 2016 Wind River Systems
  *
@@ -24,24 +23,25 @@
  */
 
 /**
- * Protocol object holds the various command and events handlers implemented by 
+ * Protocol object holds the various command and events handlers implemented by
  * the peer.
- * 
- * @class 
+ *
+ * @class
  */
-var Protocol = function () {
+
+function Protocol() {
     this._svc = {};
     this._ev = {};
     this._svcList = [];
-};
+}
 
 /**
  * @typedef {function} CmdHandler
  * @param {Channel} c - channel requesting the command
  * @param {TcfArg_t[]}  args - array of command arguments
- * @returns {Promise|TcfArg_t[]} returns either a Promise that will be resolved 
+ * @returns {Promise|TcfArg_t[]} returns either a Promise that will be resolved
  * to a list of respose arguments or the list of response arguments
- * @throws {ProtocolError} - if arguments fail to comply to service spec. 
+ * @throws {ProtocolError} - if arguments fail to comply to service spec.
  * Note that protocol errors leads to immediate termination of the channel
  */
 
@@ -50,14 +50,14 @@ var Protocol = function () {
  * @param {Channel} c - channel sending the event
  * @param {TcfArg_t[]}  args - array of event arguments
  */
- 
+
 /**
  * Add a command handler
  * @param {string} svc - name of the service
  * @param {string} cmd - command name
  * @param {CmdHandler} ch - callback for handling the command
  * @param {string[]}  [parsers = [...'json']] - list of command argument parsers
- * 
+ *
  */
 Protocol.prototype.addCommandHandler = function(svc, cmd, ch, parsers) {
     if( !this._svc[svc] ) this._svc[svc] = {};
@@ -91,6 +91,7 @@ Protocol.prototype.getCommandArgsParsers = function (svc, cmd) {
 Protocol.prototype.getServiceList = function () {
     return this._svcList;
 };
+
 
 exports.Protocol = Protocol;
 

@@ -1,6 +1,5 @@
 /**
  * Top level TCF library module
- * @module tcf
  * @license
  * Copyright (c) 2016 Wind River Systems.
  *
@@ -24,11 +23,13 @@
  */
 
 /**
+ * @global
  * @typedef {boolean|number|string|Object|Uint8Array} TcfArg_t - Defines the
  * different types of arguments for TCF commands, Events, or Response handling
  */
 
 /**
+ * @global
  * @typedef {string} PeerUrl - string representing a peer url.
  * @example "WS::8080" server running on localhost on port 8080 (all interfaces)
  * @example "TCP::9000" server running on localhost on port 900 (all interfaces)
@@ -50,7 +51,8 @@ module.exports = function(options) {
         Protocol: require('./protocol.js').Protocol,
         schemas: require('./schemas.js').schemas,
         BroadcastGroup: require('./broadcast.js').BroadcastGroup,
-        Server: require('./server.js').Server
+        Server: require('./server.js').Server,
+        Interface: require('./services/interfaces.js').Interface
     };
 };
 
@@ -62,3 +64,4 @@ module.exports.Protocol = require('./protocol.js').Protocol;
 module.exports.schemas = require('./schemas.js').schemas;
 module.exports.BroadcastGroup = require('./broadcast.js').BroadcastGroup;
 module.exports.Server = require('./server.js').Server;
+module.exports.Interface = require('./services/interfaces.js').Interface;
