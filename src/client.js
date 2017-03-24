@@ -1,7 +1,6 @@
-/**
- * TCF Client interface 
- * @module tcf/client
- * @license
+/*
+ * TCF Client interface
+ *
  * Copyright (c) 2016 Wind River Systems
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -31,24 +30,33 @@ var proto = require('./protocol.js');
 
 //===============================================================================
 // TCF services proxy definitions
-var svc_ifs = require('./services/interfaces.js').services;
+
+var defaultSvcIfs = require('./services/interfaces.js').services;
 var Proxy = require('./services/proxy.js');
 
 /**
- * Creates a new tcf client.
- * a tcf client is a channel and the corresponding set of tcf remote services 
- * proxies.
- * 
- * @class 
- * @param {Protocol} protocol - definition of client side services 
+ * Creates a new TCF client.
+ *
+ * A TCF client is used to connect to a TCF server through a set of proxies and
+ * can define a set of local service for the use of the server.
+ *
+ * @class
+ * @param {Interface[]} [interfaces] - List of supported proxy interfaces
+ * @param {Protocol} [protocol] - Definition of client side services
  */
-exports.Client = function Client(protocol) {
+exports.Client = function Client(interfaces, protocol) {
     var self = this;
 
+    if (arguments.length === 1 && !(interfaces instanceof Array)) {
+        // Support legacy contructor 'Client(protocol)'
+        protocol = arguments[0];
+        interfaces = undefined;
+    }
+
     /**
-     * remote service proxies hashtable. This property 
+     * remote service proxies hashtable. This property
      * is populated with the proxies for the corresponding remote peer services once the channel is connected
-     * @type {object} 
+     * @type {object}
      */
     this.svc = {};
     this.attrs = undefined;
@@ -58,13 +66,23 @@ exports.Client = function Client(protocol) {
     var c;
     var prot = protocol || new proto.Protocol();
 
+    var svcItf = defaultSvcIfs;
+
+    if (interfaces) {
+        // Replace default remote service interfaces with specified ones
+        svcItf = {};
+        interfaces.forEach(function(itf) {
+            svcItf[itf.name] = itf;
+        });
+    }
+
     /**
      * Establishes the connection to the peer
-     * @param {PeerUrl} url - string defining a peer url 
+     * @param {PeerUrl} url - string defining a peer url
      * @param {object|null} - Option object or null
      * @param {function} - callback upon successfull connection
-     * @param {function} - callback upon communication error 
-     * @param {function} - callback upon close 
+     * @param {function} - callback upon communication error
+     * @param {function} - callback upon close
      */
     this.connect = function connect(url, options, onconnect, onclose, onerror) {
         if (arguments.length > 1 && typeof options === "function") {
@@ -116,8 +134,8 @@ exports.Client = function Client(protocol) {
                     if (svcs[idx] == "ZeroCopy") {
                         continue;
                     }
-                    if (svc_ifs[svcs[idx]]) {
-                        self.svc[svcs[idx]] = new Proxy(svc_ifs[svcs[idx]], c);
+                    if (svcItf[svcs[idx]]) {
+                        self.svc[svcs[idx]] = new Proxy(svcItf[svcs[idx]], c);
                     }
                     else {
                         //console.log("WARNING: ignore unknown service " + svcs[idx]);
@@ -179,8 +197,8 @@ exports.Client = function Client(protocol) {
     };
 
     /**
-     * retreive the channel object associated with the Client
-     * @return {channel}
+     * Retreive the channel object associated with the Client
+     * @return {Channel}
      */
     this.getChannel = function () {
         return c;
@@ -188,28 +206,28 @@ exports.Client = function Client(protocol) {
 
 
     /**
-     * sends a TCF command over the client's channel
+     * Sends a TCF command over the client's channel
      * @param {string} service - TCF service name
      * @param {string} method - TCF service method name
      * @param {TcfArg_t[]}  args - list of command arguments
      * @param {string[]}  [parsers = [...'json']] - list of response arguments parsers
-     * @returns {promise<va_args>} promise will be rejected upon communication error 
-     * and fullfilled when the command response is received. Note that if the 
+     * @returns {promise<va_args>} promise will be rejected upon communication error
+     * and fullfilled when the command response is received. Note that if the
      * response contains a TCF error report, the promise is still fulfilled.
      */
-    this.sendCommand = function (args) {
+    this.sendCommand = function (service, method, args, parsers) {
         return c && c.sendCommand.apply(self, arguments);
     };
 
     /**
-     * sends a TCF event over the client's channel. The "E" message is sent 
+     * Sends a TCF event over the client's channel. The "E" message is sent
      * immediatly.
      * @param {string} service - TCF service name
      * @param {string} event - TCF service event name
      * @param {TcfArg_t[]}  [args] - list of event arguments
-     * 
+     *
      */
-    this.sendEvent = function (args) {
+    this.sendEvent = function (service, event, args) {
         return c && c.sendEvent.apply(self, arguments);
     };
 

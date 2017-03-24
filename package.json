@@ -1,6 +1,6 @@
 {
   "name": "tcf",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Javascript TCF client/server library.",
   "main": "src/tcf.js",
   "browser": {
@@ -39,6 +39,6 @@
     "postinstall": "bower install",
     "build": "mkdir -p dist && browserify src/tcf.js -s tcf -i atob -i btoa -i ./src/server.js -i ./src/channel_server_ws.js > dist/tcf.js",
     "test": " ./node_modules/.bin/mocha --reporter spec --full-trace test/**/*.js",
-    "doc": "./node_modules/.bin/jsdoc -r src/tcf.js src/channel.js src/protocol.js src/client.js src/server.js -R ./README.md -d ./doc/"
+    "doc": "./node_modules/.bin/jsdoc src/tcf.js src/channel.js src/protocol.js src/client.js src/server.js src/services/interfaces.js -R ./README.md -d ./doc/"
   }
 }
