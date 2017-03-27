@@ -47,18 +47,18 @@ describe('tcf-client', function () {
         if (DEBUG) console.log('LOG: ', msg);
     }
 
-    before(function(){
+    before(function () {
         /** create a server with a Pong Command */
         var protocol = new tcf.Protocol();
-        protocol.addCommandHandler('Pong','echo', function (c, args) {
+        protocol.addCommandHandler('Pong', 'echo', function (c, args) {
             var msg = args[0];
-            if (!msg) throw {msg:'Invalid argument'};
-            return ([0,msg]);
+            if (!msg) throw { msg: 'Invalid argument' };
+            return ([0, msg]);
         });
 
-        protocol.addCommandHandler('Pong','error', function (c, args) {
-            if (!args) throw {msg:'Invalid argument'};
-            return ([{error:"this is an error object"}]);
+        protocol.addCommandHandler('Pong', 'error', function (c, args) {
+            if (!args) throw { msg: 'Invalid argument' };
+            return ([{ error: "this is an error object" }]);
         });
 
         /* test service ping */
@@ -74,8 +74,8 @@ describe('tcf-client', function () {
                     client.close();
                     resolve();
                 },
-                () => {reject("channel Closed");},
-                () => {reject("channel Error");}
+                () => { reject("channel Closed"); },
+                () => { reject("channel Error"); }
             );
         })
     });
@@ -84,9 +84,9 @@ describe('tcf-client', function () {
         var client = new tcf.Client();
 
         client.connect('WS::20002',
-            () => {done('channel connected');},
-            () => {done("channel Closed");},
-            () => {done();}
+            () => { done('channel connected'); },
+            () => { done("channel Closed"); },
+            () => { done(); }
         );
     });
 
@@ -99,58 +99,58 @@ describe('tcf-client', function () {
     });
 
     it('Send command echo - should return 2 args', function () {
-        return new Promise ((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             var client = new tcf.Client();
 
             client.connect(wsurl,
                 () => {
-                    client.sendCommand('Pong', 'echo',['testmsg'])
-                    .then((res) => {
-                        res.should.have.length(2);
-                        res[0].should.equal(0);
-                        res[1].should.equal('testmsg');
-                        resolve();
-                        client.close();
-                    })
-                    .catch(err => {reject(err)})
+                    client.sendCommand('Pong', 'echo', ['testmsg'])
+                        .then((res) => {
+                            res.should.have.length(2);
+                            res[0].should.equal(0);
+                            res[1].should.equal('testmsg');
+                            resolve();
+                            client.close();
+                        })
+                        .catch(err => { reject(err) })
                 },
-                () => {reject("channel Closed");},
-                () => {reject("channel Error");}
-                );
+                () => { reject("channel Closed"); },
+                () => { reject("channel Error"); }
+            );
         });
     });
 
     it('Send command error - should return 1 arg (error)', function () {
-        return new Promise ((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             var client = new tcf.Client();
 
             client.connect(wsurl,
                 () => {
-                    client.sendCommand('Pong', 'error',['testmsg'])
-                    .then((res) => {
-                        res.should.have.length(1);
-                        res[0].should.not.equal(0);
-                        resolve();
-                        client.close();
-                    })
-                    .catch(err => {reject(err)})
+                    client.sendCommand('Pong', 'error', ['testmsg'])
+                        .then((res) => {
+                            res.should.have.length(1);
+                            res[0].should.not.equal(0);
+                            resolve();
+                            client.close();
+                        })
+                        .catch(err => { reject(err) })
                 },
-                () => {reject("channel Closed");},
-                () => {reject("channel Error");}
-                );
+                () => { reject("channel Closed"); },
+                () => { reject("channel Error"); }
+            );
         });
     });
 
 
     it('Define a client with a Pong service proxy interface', function () {
-        return new Promise ((resolve, reject) => {
+        return new Promise((resolve, reject) => {
 
             var itf = new tcf.Interface({
                 name: 'Pong',
                 cmds: [{
                     name: 'echo',
-                    args: [{type: 'string'}],
-                    results: [{title: 'err', type: 'number'}, {title: 'msg', type: 'string'}],
+                    args: [{ type: 'string' }],
+                    results: [{ title: 'err', type: 'number' }, { title: 'msg', type: 'string' }],
                 }]
             });
 
@@ -159,19 +159,33 @@ describe('tcf-client', function () {
             client.connect(wsurl,
                 () => {
                     client.svc['Pong'].echo('testmsg')
-                    .then((res) => {
-                        res.should.have.all.keys(['err', 'msg']);
-                        res.err.should.equal(0);
-                        res.msg.should.equal('testmsg');
-                        resolve();
-                        client.close();
-                    })
-                    .catch(err => {reject(err)});
+                        .then((res) => {
+                            res.should.have.all.keys(['err', 'msg']);
+                            res.err.should.equal(0);
+                            res.msg.should.equal('testmsg');
+                            resolve();
+                            client.close();
+                        })
+                        .catch(err => { reject(err) });
                 },
-                () => {reject("channel Closed");},
-                () => {reject("channel Error");}
-                );
+                () => { reject("channel Closed"); },
+                () => { reject("channel Error"); }
+            );
         });
     });
 
+    it('should trigger the channelConnected event', function () {
+        return new Promise((resolve, reject) => {
+            var client = new tcf.Client();
+            server.on("channelConnected", (c) => { resolve() });
+            client.connect(wsurl,
+                () => {
+                    client.close();
+                },
+                () => { reject("channel Closed"); },
+                () => { reject("channel Error"); }
+            );
+
+        });
+    });
 });

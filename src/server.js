@@ -26,6 +26,7 @@
 var utils = require("./utils.js");
 var peer = require("./peer.js");
 var channel = require("./channel.js");
+var EventEmitter = require('events');
 
 var serverCount = 1;
 
@@ -66,8 +67,10 @@ function channelServer(ps) {
  */
 
 function Server(url, protocol, options) {
-
+    var that = this;
     this.ps = peer.peer_from_url(url);
+    EventEmitter.call(this);
+
 
     this.ps.addprop("ServiceManagerID", getServiceManagerId());
 
@@ -80,9 +83,11 @@ function Server(url, protocol, options) {
     this.serv.onconnection = function newConnection(serv, c) {
         c.setProtocol(protocol);
         c.start();
+        that.emit('channelConnected', c);
     };
-
 }
+
+Server.prototype = Object.create(require('events').EventEmitter.prototype);
 
 module.exports = {
     Server: Server
