@@ -21,6 +21,7 @@
  */
 var webSocket = require('ws');
 var channel = require('./channel.js');
+const url = require('url');
 
 module.exports = function channel_create_ws_server(ps, options) {
     var host = ps.getprop('Host');
@@ -69,6 +70,10 @@ module.exports = function channel_create_ws_server(ps, options) {
         // A new connection
         var c = new channel.Channel();
 
+        // Build the connection parameters from the url
+        c.connectionParams = url.parse(wsSocket.upgradeReq.url, true, true).query;
+        c.connectionParams._url = wsSocket.upgradeReq.url;
+        
         wsSocket.onclose = function() {
             c.onClosed();
         };

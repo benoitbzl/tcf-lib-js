@@ -28,8 +28,8 @@
 var chai = require("chai");
 var expect = chai.expect;
 var assert = chai.assert;
-chai.should();
 var chaiAsPromised = require("chai-as-promised");
+chai.should();
 chai.use(chaiAsPromised);
 var tcf = require('../src/tcf');
 
@@ -186,6 +186,28 @@ describe('tcf-client', function () {
                 () => { reject("channel Error"); }
             );
 
+        });
+    });
+
+    it('should receive client parameters', function () {
+        var path = "/test?arg1=test1";
+        return new Promise((resolve, reject) => {
+            var client = new tcf.Client();
+            server.on("channelConnected", (c) => {
+                c.should.have.property('connectionParams');
+                expect(c.connectionParams).to.have.property('arg1');
+                c.connectionParams['_url'].should.equal(path);
+                c.connectionParams.arg1.should.equal('test1');
+                c.close();
+                resolve();
+            });
+            client.connect(wsurl + path,
+                () => {
+                    client.close();
+                },
+                () => {  },
+                () => { reject("channel Error"); }
+            );
         });
     });
 });
