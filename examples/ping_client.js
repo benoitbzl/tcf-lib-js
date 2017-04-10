@@ -21,7 +21,7 @@
  */
  
 var tcf = require('../src/tcf.js');
-
+var fs = require('fs');
 var score = {home:0, guest:0};
 
 /* this client will itself implement a Ping service */
@@ -90,4 +90,8 @@ var onConnect = function() {
     }
 };
 
-client.connect('WS::20001', onConnect, onError, onClose);
+client.connect('WSS:localhost:20001', {
+    key: fs.readFileSync('test/certs/client1-key.pem'), 
+    cert: fs.readFileSync('test/certs/client1-crt.pem'), 
+    ca: fs.readFileSync('test/certs/ca-crt.pem')
+}, onConnect, onError, onClose);

@@ -32,11 +32,8 @@ if (webSocket.Server) {
 }
 
 channel.add_transport(transport);
-
-channel.add_transport({
-    name: 'WSS',
-    connect: connectClientWS
-});
+transport.name = 'WSS';
+channel.add_transport(transport);
 
 function connectClientWS(ps, options) {
     var host = ps.getprop('Host') || "127.0.0.1";

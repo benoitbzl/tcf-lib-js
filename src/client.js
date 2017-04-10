@@ -71,15 +71,21 @@ exports.Client = function Client(interfaces, protocol) {
     if (interfaces) {
         // Replace default remote service interfaces with specified ones
         svcItf = {};
-        interfaces.forEach(function(itf) {
+        interfaces.forEach(function (itf) {
             svcItf[itf.name] = itf;
         });
     }
 
     /**
+     * Connection options - These are inherited from the tls.createSecureContext 
+     * {@link https://nodejs.org/api/tls.html#tls_tls_createsecurecontext_options}
+     * 
+     * @typedef {object} ConnectOptions 
+     */
+    /**
      * Establishes the connection to the peer
      * @param {PeerUrl} url - string defining a peer url
-     * @param {object|null} - Option object or null
+     * @param {ConnectOptions |null} - Option object or null
      * @param {function} - callback upon successfull connection
      * @param {function} - callback upon communication error
      * @param {function} - callback upon close

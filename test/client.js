@@ -29,6 +29,8 @@ var chai = require("chai");
 var expect = chai.expect;
 var assert = chai.assert;
 var chaiAsPromised = require("chai-as-promised");
+var fs = require('fs');
+
 chai.should();
 chai.use(chaiAsPromised);
 var tcf = require('../src/tcf');
@@ -40,8 +42,9 @@ var DONT_REMOVE_DOCKER_CONTAINER = false;   // Set to true to not remove contain
 describe('tcf-client', function () {
     var tcf_agent = null;
     var tcf_log_file = __dirname + '/../tmp/tcf-agent.log';
-    var server;
+    var server, serverSec;
     var wsurl = 'WS::20001';
+    var wssurl = 'WSS:localhost:20004';
 
     function log(msg) {
         if (DEBUG) console.log('LOG: ', msg);
@@ -63,6 +66,13 @@ describe('tcf-client', function () {
 
         /* test service ping */
         server = new tcf.Server(wsurl, protocol);
+        serverSec = new tcf.Server(wssurl, protocol, {
+            cert: fs.readFileSync('test/certs/server-crt.pem'),
+            key: fs.readFileSync('test/certs/server-key.pem'),
+            ca: fs.readFileSync('test/certs/ca-crt.pem'),
+            requestCert: true,
+            rejectUnauthorized: true
+        });
     });
 
     it('Server Connection', function () {
@@ -205,9 +215,42 @@ describe('tcf-client', function () {
                 () => {
                     client.close();
                 },
-                () => {  },
+                () => { },
                 () => { reject("channel Error"); }
             );
         });
     });
+
+    it('should fail connection to a wss server', function () {
+        var path = "/test?arg1=test1";
+        return new Promise((resolve, reject) => {
+            var client = new tcf.Client();
+            client.connect(wssurl,
+                () => {
+                    reject("connection was made with incorrect certificates");
+                },
+                () => { resolve(); },
+                () => { resolve(); }
+            );
+        });
+    });
+
+    it('should  connect to a wss server', function () {
+        var path = "/test?arg1=test1";
+        return new Promise((resolve, reject) => {
+            var client = new tcf.Client();
+            client.connect(wssurl, {
+                key: fs.readFileSync('test/certs/client1-key.pem'),
+                cert: fs.readFileSync('test/certs/client1-crt.pem'),
+                ca: fs.readFileSync('test/certs/ca-crt.pem')
+            },
+                () => {
+                    resolve();
+                },
+                () => { reject("connection error"); },
+                () => { reject("connection closed"); }
+            );
+        });
+    });
+
 });

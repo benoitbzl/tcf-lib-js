@@ -21,7 +21,7 @@
  */
 
 var tcf = require('../src/tcf.js');
-
+var fs = require('fs');
 var protocol = new tcf.Protocol();
 
 protocol.addCommandHandler('Pong','echo', function (c, msg) {
@@ -50,5 +50,9 @@ var returnPing = function (client) {
 
 /* test service ping */
 
-var server = new tcf.Server('WS::20001', protocol);
+var server = new tcf.Server('WSS:localhost:20001', protocol, {
+    cert: fs.readFileSync('test/certs/server-crt.pem'),
+    key: fs.readFileSync('test/certs/server-key.pem'),
+    ca: fs.readFileSync('test/certs/ca-crt.pem')
+});
 

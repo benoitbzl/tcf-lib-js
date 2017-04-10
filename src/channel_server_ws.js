@@ -21,6 +21,7 @@
  */
 var webSocket = require('ws');
 var channel = require('./channel.js');
+var https = require('https');
 const url = require('url');
 
 module.exports = function channel_create_ws_server(ps, options) {
@@ -64,7 +65,16 @@ module.exports = function channel_create_ws_server(ps, options) {
         channel: null
     };
 
-    serverChannel.server = new webSocket.Server(wsOptions);
+    /* for WSS connection create a https server separatly */
+    if(ps.getprop('TransportName') === 'WSS') {
+        var options = ps.getprop('options');
+        if (!options || !options.key || !options.cert) throw 'options.key and options.cert are mandatory for wss server';
+        var httpsServer = https.createServer(Object.assign(wsOptions, options)).listen(wsOptions.port);
+        serverChannel.server = new webSocket.Server({server: httpsServer});
+    }
+    else {
+        serverChannel.server = new webSocket.Server(wsOptions);
+    }
 
     serverChannel.server.on('connection', function(wsSocket) {
         // A new connection

@@ -56,6 +56,13 @@ function channelServer(ps) {
 }
 
 /**
+ * Server Options definition. These are inherited from the tls.createSecureContext 
+ * {@link https://nodejs.org/api/tls.html#tls_tls_createsecurecontext_options}
+ * 
+ * @typedef {Object} ServerOptions
+ */
+
+/**
  * Creates a new tcf server.
  * a tcf client is a channel and the corresponding set of tcf remote services
  * proxies.
@@ -63,7 +70,7 @@ function channelServer(ps) {
  * @class
  * @param {PeerUrl} url - Defines the url of the server
  * @param {Protocol} protocol - definition of server side services
- * @param {object} [options] - additionnal options
+ * @param {ServerOptions} [options] - additionnal options
  */
 
 function Server(url, protocol, options) {
@@ -73,6 +80,7 @@ function Server(url, protocol, options) {
 
 
     this.ps.addprop("ServiceManagerID", getServiceManagerId());
+    this.ps.addprop("options", options);
 
     this.serv = channelServer(this.ps);
 
