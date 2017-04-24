@@ -3894,8 +3894,11 @@ var ChannelEvent = {
 
 exports.ChannelEvent = ChannelEvent;
 
+var STD_ERR_BASE = 0x20000;
+
 var TcfError = {
-    ERR_PROTOCOL: 1
+    ERR_PROTOCOL: STD_ERR_BASE + 3,
+    ERR_CHANNEL_CLOSED: STD_ERR_BASE + 5,
 };
 
 var ESC = 3;
@@ -3954,7 +3957,6 @@ function Channel(protocol) {
         var pres =  new promise(function(resolve, reject) {
             var rh = {};
             var i;
-            var ibin_arg;
             tokenId++;
             writeStringz("C");
             writeStringz(JSONbig.stringify(tokenId));
@@ -4218,7 +4220,7 @@ function Channel(protocol) {
             }
             // skip EOM
             readStream();
-            rh.resolve(rargs);
+            rh.resolve && rh.resolve(rargs);
         }
         else if (msg.type == "E") {
             msg.service = readStringz();
@@ -4332,49 +4334,40 @@ function Channel(protocol) {
         }
     }
 
-    var sendCommandMarshal = function sendCommandMarshal(service, name, args_list, res_list, done, ibin_args, ibin_res) {
-        var rh = {};
-        var i;
-        var ibin_arg;
-        tokenId++;
-        writeStringz("C");
-        writeStringz(JSONbig.stringify(tokenId));
-        writeStringz(service);
-        writeStringz(name);
-        for (i = 0; i < args_list.length; i++) {
-            ibin_arg = false;
-            for (var j = 0; ibin_args && j < ibin_args.length; j++) {
-                if (ibin_args[j] == i) {
-                    ibin_arg = true;
-                    break;
-                }
+    function channelClosed() {
+        // Remove event handlers
+        eventHandlers.length = 0;
+        // Send an error to pending command handlers
+        replyHandlers.forEach((replyHandler, idx) => {
+            try {
+                replyHandler.reject(TcfError.ERR_CHANNEL_CLOSED);
             }
-            if (ibin_arg) {
-                writeStringz(JSONbig.stringify(btoa(args_list[i])));
+            catch(err) {
+                if (log) console.error('Exception handling reply:', err);
             }
-            else writeStringz(JSONbig.stringify(args_list[i]));
-        }
-        writeStream(MARKER_EOM);
-        rh.tokenId = tokenId;
-        rh.reply = done;
-        rh.progress = null;
-        rh.marshall = true;
-        rh.res_list = res_list;
-        rh.ibin_res = ibin_res;
-        rh.service = service;
-        rh.name = name;
-        replyHandlers.push(rh);
-        if (log) console.log(tokenId, service, name, args_list);
-        return 0;
-    };
-
+            if (state != ChannelState.Disconnected) {
+                /*
+                 * Keep the reply handler structure to intercept correctly the reply,
+                 * but do not call the handler.
+                 */
+                replyHandler.resolve = null;
+                replyHandler.progress = null;
+            }
+            else {
+                replyHandlers.splice(idx, 1);
+            }
+        })
+    }
+    
     function onClosed() {
         state = ChannelState.Disconnected;
+        channelClosed();
         notifyChannelEvent(ChannelEvent.onclose);
     }
 
     function onError(err) {
         state = ChannelState.Disconnected;
+        channelClosed();
         notifyChannelEvent(ChannelEvent.onerror, err);
     }
 

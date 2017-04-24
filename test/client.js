@@ -64,6 +64,15 @@ describe('tcf-client', function () {
             return ([{ error: "this is an error object" }]);
         });
 
+        protocol.addCommandHandler('Pong', 'delay', function (c, args) {
+            if (!args) throw { msg: 'Invalid argument' };
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    resolve([0]);
+                }, +args);
+            });
+        });
+
         /* test service ping */
         server = new tcf.Server(wsurl, protocol);
         serverSec = new tcf.Server(wssurl, protocol, {
@@ -151,6 +160,31 @@ describe('tcf-client', function () {
         });
     });
 
+
+    it('Close a connection with a pending command', function () {
+        return new Promise((resolve, reject) => {
+            var client = new tcf.Client();
+
+            client.connect(wsurl,
+                () => {
+                    client.sendCommand('Pong', 'delay', [2000])
+                        .then((res) => {
+                            reject();
+                        })
+                        .catch(err => {
+                            resolve();
+                        });
+
+                    setTimeout(() => {
+                        client.close();
+                    }, 1000);
+
+                },
+                () => {},
+                () => { reject("channel Error"); }
+            );
+        });
+    });
 
     it('Define a client with a Pong service proxy interface', function () {
         return new Promise((resolve, reject) => {
