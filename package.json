@@ -1,6 +1,6 @@
 {
   "name": "tcf",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Javascript TCF client/server library.",
   "main": "src/tcf.js",
   "browser": {
