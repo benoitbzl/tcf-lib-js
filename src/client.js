@@ -251,6 +251,13 @@ exports.Client = function Client(interfaces, protocol) {
     };
 
     /**
+     * Closes the client communication channel
+     * 
+     * Alias to the close() method.
+     */    
+    this.disconnect = this.close;
+
+    /**
      * Retreive the channel object associated with the Client
      * @return {Channel}
      */

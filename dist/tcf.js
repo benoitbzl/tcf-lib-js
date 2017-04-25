@@ -3935,6 +3935,7 @@ function Channel(protocol) {
     var proto;
     var svcList;
     var hasZeroCopySupport = false;
+    var eof = false;
 
     setProtocol(protocol);
 
@@ -3993,9 +3994,11 @@ function Channel(protocol) {
         else if (ch == MARKER_EOS) {
             obuf[owrite++] = ESC;
             obuf[owrite++] = 2;
-            flushOutput();
         }
-        else obuf[owrite++] = ch;
+        else {
+            obuf[owrite++] = ch;
+        }
+        
         return 0;
     };
 
@@ -4072,6 +4075,8 @@ function Channel(protocol) {
 
     var readStream = function readStream() {
         var ch;
+        if (iread === ibuf.length && eof) return MARKER_EOS;
+
         utils.assert(iread < ibuf.length);
         // check for escape character
         if ((ch = ibuf[iread++]) == ESC) {
@@ -4146,7 +4151,7 @@ function Channel(protocol) {
         } while (ch != MARKER_EOM);
     };
 
-    var handleProtocolMessage = function handleProtocolMessage() {
+    function handleProtocolMessage() {
         var msg = {},
             arg,
             ch,
@@ -4157,7 +4162,7 @@ function Channel(protocol) {
         msg.type = readStringz();
 
         if (msg.type.length < 1) {
-            error = TcfError.ERR_PROTOCOL;
+            throw TcfError.ERR_PROTOCOL;
         }
         else if (msg.type == "C") {
             var token = readStringz();
@@ -4188,8 +4193,8 @@ function Channel(protocol) {
                 writeStream(MARKER_EOM);
             })
             .catch(function(err) {
-                // close the channel
                 console.log ('TCF protocol Error', err);
+                sendEofAndClose();
             });
         }
         else if ((msg.type == "R") || (msg.type == "P") || (msg.type == "N")) {
@@ -4197,6 +4202,11 @@ function Channel(protocol) {
             msg.token = readStringz();
             // get the reply handler
             var rh = popReplyHandler(msg.token);
+
+            if (!rh) {
+                throw TcfError.ERR_PROTOCOL;
+            }
+
             msg.res = {};
             res_idx = 0;
             // build the result object
@@ -4251,25 +4261,40 @@ function Channel(protocol) {
             }
         }
         else {
-            error = TcfError.ERR_PROTOCOL;
-            if (log) console.error("Invalid TCF message" + msg.type);
+            if (log) console.error("Invalid TCF message " + msg);
+            throw TcfError.ERR_PROTOCOL;
         }
+
         if (log) console.log(JSONbig.stringify(msg));
     };
 
-    var updateMessageCount = function updateMessageCount(buf) {
+    function updateMessageCount(buf) {
         var i;
         for (i = 0; i < buf.byteLength; i++) {
             switch (buf[i]) {
                 case 1: //EOM
-                    setTimeout(handleProtocolMessage, 0);
+                    setTimeout(() => {
+
+                        try {
+                            handleProtocolMessage();
+                        }
+                        catch(error) {
+                            sendEofAndClose();
+                        }
+
+                    }, 0);
                     messageCount++;
                     break;
                 case 2: //EOS
+                    // Channel closed by remote peer
+                    eof = true;
+                    setTimeout(() => {
+                        channel.close();
+                    });
                     break;
             }
         }
-    };
+    }
 
     var sendHelloMessage = function sendHelloMessage() {
         utils.assert(state == ChannelState.Started || state == ChannelState.HelloReceived);
@@ -4288,7 +4313,13 @@ function Channel(protocol) {
     };
 
     function flushOutput() {
-        channel.flushOutput(obuf.slice(0, owrite));
+        try {
+            channel.flushOutput(obuf.slice(0, owrite));
+        }
+        catch(error) {
+            if (log) console.log(error);
+        }
+
         owrite = 0;
     }
 
@@ -4377,6 +4408,18 @@ function Channel(protocol) {
         proto = protocol;
     }
 
+    function sendEofAndClose() {
+        if (state === ChannelState.Disconnected) return;
+
+        writeStream(MARKER_EOS);
+        writeStream(0);
+        writeStream(MARKER_EOM);
+
+        state = ChannelState.Disconnected;
+
+        this.closeConnection();
+    }
+
     var channel = {
         id: channelId++,
 
@@ -4396,17 +4439,7 @@ function Channel(protocol) {
         flushOutput: null,      // set by the transport layer
         closeConnection: null,  // set by the transport layer
 
-        close: function() {
-            if (state === ChannelState.Disconnected) return;
-
-            writeStream(MARKER_EOS);
-            writeStringz("null");
-            writeStream(MARKER_EOM);
-
-            state = ChannelState.Disconnected;
-
-            this.closeConnection();
-        },
+        close: sendEofAndClose,
 
         addHandler: function(ev, cb) {
             if (typeof listeners[ev] == "undefined") listeners[ev] = [];
@@ -4796,6 +4829,13 @@ exports.Client = function Client(interfaces, protocol) {
             c.close();
         }
     };
+
+    /**
+     * Closes the client communication channel
+     * 
+     * Alias to the close() method.
+     */    
+    this.disconnect = this.close;
 
     /**
      * Retreive the channel object associated with the Client

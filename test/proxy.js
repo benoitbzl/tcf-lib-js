@@ -23,6 +23,8 @@
  * Basic tests for node-tcf-client
  */
 
+/* global describe, before, it, after */
+
 "use strict";
 
 var chai = require("chai");
@@ -35,14 +37,10 @@ var tcf = require('../src/tcf');
 var itf = require('../src/services/interfaces').services;
 
 var DEBUG = true;                          // Set to true to enable debug log
-var DONT_REMOVE_DOCKER_CONTAINER = false;   // Set to true to not remove container and allow post debugging
-
 
 describe('tcf-proxy', function () {
-    var tcf_agent = null;
-    var tcf_log_file = __dirname + '/../tmp/tcf-agent.log';
-    var server;
     var wsurl = 'WS::20002';
+    var server;
 
     function log(msg) {
         if (DEBUG) console.log('LOG: ', msg);
