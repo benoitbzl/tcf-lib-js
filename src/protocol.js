@@ -62,7 +62,7 @@ function Protocol() {
 Protocol.prototype.addCommandHandler = function(svc, cmd, ch, parsers) {
     if( !this._svc[svc] ) this._svc[svc] = {};
     this._svc[svc][cmd] = {ch: ch, parsers: parsers};
-    this._svcList.push(svc);
+    if (this._svcList.indexOf(svc) == -1) this._svcList.push(svc);
 };
 
 /**
