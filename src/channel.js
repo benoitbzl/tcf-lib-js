@@ -576,7 +576,7 @@ function Channel(protocol) {
 
         state = ChannelState.Disconnected;
 
-        this.closeConnection();
+        channel.closeConnection();
     }
 
     var channel = {
