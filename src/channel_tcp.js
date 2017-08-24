@@ -88,37 +88,39 @@ function createServerTCP(ps) {
     var serverChannel = {
         ps: ps,
         server: null,
-        onconnection: null,
-        channel: null
+        onconnection: null
+        //channel: null
     };
 
     serverChannel.server = require('net').createServer(function(socket) {
         // A new connection
 
-        serverChannel.channel = new channel.Channel();
+        var _channel;
+
+        _channel = new channel.Channel();
 
         socket.on('close', function() {
-            serverChannel.channel.onClosed();
+            _channel.onClosed();
         });
 
         socket.on('data', function(buffer) {
-            serverChannel.channel.onData(buffer.buffer);
+            _channel.onData(buffer.buffer);
         });
 
         socket.on('error', function(error) {
-            serverChannel.channel.onError(error);
+            _channel.onError(error);
         });
 
-        serverChannel.channel.closeConnection = function tcpCloseConnection() {
+        _channel.closeConnection = function tcpCloseConnection() {
             socket.end();
         };
 
-        serverChannel.channel.flushOutput = function tcpFlushOutput(typedArray) {
+        _channel.flushOutput = function tcpFlushOutput(typedArray) {
             var buf = new Buffer(typedArray.buffer);
             socket.write(buf);
         };
 
-        serverChannel.onconnection(serverChannel, serverChannel.channel);
+        serverChannel.onconnection(serverChannel, _channel);
     });
 
     serverChannel.server.on('error', function(error) {
