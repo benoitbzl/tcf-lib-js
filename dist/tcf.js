@@ -1,11 +1,11 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.tcf = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-/*! bignumber.js v4.0.0 https://github.com/MikeMcl/bignumber.js/LICENCE */
+/*! bignumber.js v4.0.4 https://github.com/MikeMcl/bignumber.js/LICENCE */
 
 ;(function (globalObj) {
     'use strict';
 
     /*
-      bignumber.js v4.0.0
+      bignumber.js v4.0.4
       A JavaScript library for arbitrary-precision arithmetic.
       https://github.com/MikeMcl/bignumber.js
       Copyright (c) 2017 Michael Mclaughlin <M8ch88l@gmail.com>
@@ -636,7 +636,7 @@
                 } else {
 
                     // Remove leading elements which are zero and adjust exponent accordingly.
-                    for ( e = -1 ; c[0] === 0; c.shift(), e -= LOG_BASE);
+                    for ( e = -1 ; c[0] === 0; c.splice(0, 1), e -= LOG_BASE);
 
                     // Count the digits of the first element of c to determine leading zeros, and...
                     for ( i = 1, v = c[0]; v >= 10; v /= 10, i++);
@@ -729,7 +729,7 @@
 
                         if ( !d ) {
                             ++e;
-                            xc.unshift(1);
+                            xc = [1].concat(xc);
                         }
                     }
                 }
@@ -767,7 +767,7 @@
                     x[i] = temp % base;
                 }
 
-                if (carry) x.unshift(carry);
+                if (carry) x = [carry].concat(x);
 
                 return x;
             }
@@ -801,7 +801,7 @@
                 }
 
                 // Remove leading zeros.
-                for ( ; !a[0] && a.length > 1; a.shift() );
+                for ( ; !a[0] && a.length > 1; a.splice(0, 1) );
             }
 
             // x: dividend, y: divisor.
@@ -870,7 +870,7 @@
                     // Add zeros to make remainder as long as divisor.
                     for ( ; remL < yL; rem[remL++] = 0 );
                     yz = yc.slice();
-                    yz.unshift(0);
+                    yz = [0].concat(yz);
                     yc0 = yc[0];
                     if ( yc[1] >= base / 2 ) yc0++;
                     // Not necessary, but to prevent trial digit n > base, when using base 3.
@@ -941,7 +941,7 @@
                                 prodL = prod.length;
                             }
 
-                            if ( prodL < remL ) prod.unshift(0);
+                            if ( prodL < remL ) prod = [0].concat(prod);
 
                             // Subtract product from remainder.
                             subtract( rem, prod, remL, base );
@@ -982,7 +982,7 @@
                     more = rem[0] != null;
 
                     // Leading zero?
-                    if ( !qc[0] ) qc.shift();
+                    if ( !qc[0] ) qc.splice(0, 1);
                 }
 
                 if ( base == BASE ) {
@@ -1692,7 +1692,7 @@
             }
 
             // Remove leading zeros and adjust exponent accordingly.
-            for ( ; xc[0] == 0; xc.shift(), --ye );
+            for ( ; xc[0] == 0; xc.splice(0, 1), --ye );
 
             // Zero?
             if ( !xc[0] ) {
@@ -1860,7 +1860,7 @@
             }
 
             if (a) {
-                xc.unshift(a);
+                xc = [a].concat(xc);
                 ++ye;
             }
 
@@ -2149,7 +2149,7 @@
             if (c) {
                 ++e;
             } else {
-                zc.shift();
+                zc.splice(0, 1);
             }
 
             return normalise( y, zc, e );
@@ -2716,7 +2716,7 @@
 
 
     BigNumber = constructorFactory();
-    BigNumber.default = BigNumber.BigNumber = BigNumber;
+    BigNumber['default'] = BigNumber.BigNumber = BigNumber;
 
 
     // AMD.
@@ -3522,6 +3522,269 @@ var JSON = module.exports;
 }());
 
 },{"bignumber.js":1}],6:[function(require,module,exports){
+// shim for using process in browser
+var process = module.exports = {};
+
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
+
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+function defaultSetTimout() {
+    throw new Error('setTimeout has not been defined');
+}
+function defaultClearTimeout () {
+    throw new Error('clearTimeout has not been defined');
+}
+(function () {
+    try {
+        if (typeof setTimeout === 'function') {
+            cachedSetTimeout = setTimeout;
+        } else {
+            cachedSetTimeout = defaultSetTimout;
+        }
+    } catch (e) {
+        cachedSetTimeout = defaultSetTimout;
+    }
+    try {
+        if (typeof clearTimeout === 'function') {
+            cachedClearTimeout = clearTimeout;
+        } else {
+            cachedClearTimeout = defaultClearTimeout;
+        }
+    } catch (e) {
+        cachedClearTimeout = defaultClearTimeout;
+    }
+} ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    // if setTimeout wasn't available but was latter defined
+    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+        cachedSetTimeout = setTimeout;
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
+    }
+
+
+}
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
+    }
+    // if clearTimeout wasn't available but was latter defined
+    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+        cachedClearTimeout = clearTimeout;
+        return clearTimeout(marker);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
+    }
+
+
+
+}
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+        return;
+    }
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
+    }
+    if (queue.length) {
+        drainQueue();
+    }
+}
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = runTimeout(cleanUpNextTick);
+    draining = true;
+
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
+        }
+        queueIndex = -1;
+        len = queue.length;
+    }
+    currentQueue = null;
+    draining = false;
+    runClearTimeout(timeout);
+}
+
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        runTimeout(drainQueue);
+    }
+};
+
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
+
+},{}],7:[function(require,module,exports){
+var nextTick = require('process/browser.js').nextTick;
+var apply = Function.prototype.apply;
+var slice = Array.prototype.slice;
+var immediateIds = {};
+var nextImmediateId = 0;
+
+// DOM APIs, for completeness
+
+exports.setTimeout = function() {
+  return new Timeout(apply.call(setTimeout, window, arguments), clearTimeout);
+};
+exports.setInterval = function() {
+  return new Timeout(apply.call(setInterval, window, arguments), clearInterval);
+};
+exports.clearTimeout =
+exports.clearInterval = function(timeout) { timeout.close(); };
+
+function Timeout(id, clearFn) {
+  this._id = id;
+  this._clearFn = clearFn;
+}
+Timeout.prototype.unref = Timeout.prototype.ref = function() {};
+Timeout.prototype.close = function() {
+  this._clearFn.call(window, this._id);
+};
+
+// Does not start the time, just sets up the members needed.
+exports.enroll = function(item, msecs) {
+  clearTimeout(item._idleTimeoutId);
+  item._idleTimeout = msecs;
+};
+
+exports.unenroll = function(item) {
+  clearTimeout(item._idleTimeoutId);
+  item._idleTimeout = -1;
+};
+
+exports._unrefActive = exports.active = function(item) {
+  clearTimeout(item._idleTimeoutId);
+
+  var msecs = item._idleTimeout;
+  if (msecs >= 0) {
+    item._idleTimeoutId = setTimeout(function onTimeout() {
+      if (item._onTimeout)
+        item._onTimeout();
+    }, msecs);
+  }
+};
+
+// That's not how node.js implements it but the exposed api is the same.
+exports.setImmediate = typeof setImmediate === "function" ? setImmediate : function(fn) {
+  var id = nextImmediateId++;
+  var args = arguments.length < 2 ? false : slice.call(arguments, 1);
+
+  immediateIds[id] = true;
+
+  nextTick(function onNextTick() {
+    if (immediateIds[id]) {
+      // fn.call() is faster so we optimize for the common use-case
+      // @see http://jsperf.com/call-apply-segu
+      if (args) {
+        fn.apply(null, args);
+      } else {
+        fn.call(null);
+      }
+      // Prevent ids from leaking
+      exports.clearImmediate(id);
+    }
+  });
+
+  return id;
+};
+
+exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate : function(id) {
+  delete immediateIds[id];
+};
+},{"process/browser.js":6}],8:[function(require,module,exports){
 (function (global){
 
 var rng;
@@ -3557,7 +3820,7 @@ module.exports = rng;
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],7:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 //     uuid.js
 //
 //     Copyright (c) 2010-2012 Robert Kieffer
@@ -3742,7 +4005,7 @@ uuid.unparse = unparse;
 
 module.exports = uuid;
 
-},{"./rng":6}],8:[function(require,module,exports){
+},{"./rng":8}],10:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -3789,7 +4052,7 @@ BroadcastGroup.prototype.removeChannel = function(c) {
 };
 
 exports.BroadcastGroup = BroadcastGroup;
-},{}],9:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -3813,7 +4076,7 @@ exports.BroadcastGroup = BroadcastGroup;
  */
 require("./channel_ws.js");
 
-},{"./channel_ws.js":12}],10:[function(require,module,exports){
+},{"./channel_ws.js":14}],12:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -3837,12 +4100,12 @@ require("./channel_ws.js");
  */
 module.exports = WebSocket;
 
-},{}],11:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 (function (global){
 /**
- * TCF Channel inteface
+ * TCF Channel interface
  * @license
- * Copyright (c) 2016 Wind River Systems
+ * Copyright (c) 2016-2017 Wind River Systems
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -3870,6 +4133,7 @@ if (typeof global !== 'undefined') {
 
 var promise = Promise;
 var utils = require('./utils.js');
+var Timers = require('timers');
 
 var channelId = 0;
 
@@ -3998,7 +4262,7 @@ function Channel(protocol) {
         else {
             obuf[owrite++] = ch;
         }
-        
+
         return 0;
     };
 
@@ -4266,14 +4530,14 @@ function Channel(protocol) {
         }
 
         if (log) console.log(JSONbig.stringify(msg));
-    };
+    }
 
     function updateMessageCount(buf) {
         var i;
         for (i = 0; i < buf.byteLength; i++) {
             switch (buf[i]) {
                 case 1: //EOM
-                    setTimeout(() => {
+                    Timers.setImmediate(() => {
 
                         try {
                             handleProtocolMessage();
@@ -4282,13 +4546,13 @@ function Channel(protocol) {
                             sendEofAndClose();
                         }
 
-                    }, 0);
+                    });
                     messageCount++;
                     break;
                 case 2: //EOS
                     // Channel closed by remote peer
                     eof = true;
-                    setTimeout(() => {
+                    Timers.setImmediate(() => {
                         channel.close();
                     });
                     break;
@@ -4387,9 +4651,9 @@ function Channel(protocol) {
             else {
                 replyHandlers.splice(idx, 1);
             }
-        })
+        });
     }
-    
+
     function onClosed() {
         state = ChannelState.Disconnected;
         channelClosed();
@@ -4417,7 +4681,7 @@ function Channel(protocol) {
 
         state = ChannelState.Disconnected;
 
-        this.closeConnection();
+        channel.closeConnection();
     }
 
     var channel = {
@@ -4484,7 +4748,7 @@ exports.add_transport = add_transport;
 exports.get_transport = get_transport;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./options.js":14,"./utils.js":39,"atob":2,"btoa":2,"json-bigint":3}],12:[function(require,module,exports){
+},{"./options.js":16,"./utils.js":41,"atob":2,"btoa":2,"json-bigint":3,"timers":7}],14:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -4577,7 +4841,7 @@ function connectClientWS(ps, options) {
     return clientChannel;
 }
 
-},{"./channel.js":11,"./channel_server_ws.js":2,"ws":10}],13:[function(require,module,exports){
+},{"./channel.js":13,"./channel_server_ws.js":2,"ws":12}],15:[function(require,module,exports){
 /*
  * TCF Client interface
  *
@@ -4896,7 +5160,7 @@ function channelClient(ps, options) {
     return cc;
 }
 
-},{"./channel.js":11,"./peer.js":15,"./protocol.js":16,"./services/interfaces.js":19,"./services/proxy.js":36}],14:[function(require,module,exports){
+},{"./channel.js":13,"./peer.js":17,"./protocol.js":18,"./services/interfaces.js":21,"./services/proxy.js":38}],16:[function(require,module,exports){
 /**
  * Library Options Support
  *
@@ -4933,7 +5197,7 @@ exports.set = function(opts) {
     options = Object.assign(options, opts);
 };
 
-},{}],15:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5066,7 +5330,7 @@ var peerFromUrl = function peerFromUrl(url) {
 module.exports = {
     peer_from_url: peer_from_url
 };
-},{"./utils.js":39}],16:[function(require,module,exports){
+},{"./utils.js":41}],18:[function(require,module,exports){
 /**
  * TCF Protocol interface
  * @license
@@ -5131,7 +5395,7 @@ function Protocol() {
 Protocol.prototype.addCommandHandler = function(svc, cmd, ch, parsers) {
     if( !this._svc[svc] ) this._svc[svc] = {};
     this._svc[svc][cmd] = {ch: ch, parsers: parsers};
-    this._svcList.push(svc);
+    if (this._svcList.indexOf(svc) == -1) this._svcList.push(svc);
 };
 
 /**
@@ -5165,7 +5429,7 @@ Protocol.prototype.getServiceList = function () {
 exports.Protocol = Protocol;
 
 
-},{}],17:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5192,7 +5456,7 @@ exports.schemas = {
     'ctxId': {type: 'string'}
 };
 
-},{}],18:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5291,7 +5555,7 @@ Service.prototype.exec = function (cmd, args) {
 exports.Broadcast = Broadcast;
 exports.Service = Service;
 
-},{}],19:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 /*
  * TCF Proxy interface
  *
@@ -5399,7 +5663,7 @@ module.exports = {
     Interface: Interface
 };
 
-},{"../utils.js":39,"./interfaces/expressions.js":20,"./interfaces/filesystem.js":21,"./interfaces/linenumbers.js":22,"./interfaces/locator.js":23,"./interfaces/memory.js":24,"./interfaces/memorymap.js":25,"./interfaces/pathmap.js":26,"./interfaces/portforward.js":27,"./interfaces/processesv1.js":28,"./interfaces/profiler.js":29,"./interfaces/runcontrol.js":30,"./interfaces/stacktrace.js":31,"./interfaces/streams.js":32,"./interfaces/symbols.js":33,"./interfaces/sysmonitor.js":34,"./interfaces/terminals.js":35}],20:[function(require,module,exports){
+},{"../utils.js":41,"./interfaces/expressions.js":22,"./interfaces/filesystem.js":23,"./interfaces/linenumbers.js":24,"./interfaces/locator.js":25,"./interfaces/memory.js":26,"./interfaces/memorymap.js":27,"./interfaces/pathmap.js":28,"./interfaces/portforward.js":29,"./interfaces/processesv1.js":30,"./interfaces/profiler.js":31,"./interfaces/runcontrol.js":32,"./interfaces/stacktrace.js":33,"./interfaces/streams.js":34,"./interfaces/symbols.js":35,"./interfaces/sysmonitor.js":36,"./interfaces/terminals.js":37}],22:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5441,7 +5705,7 @@ module.exports = {
     evs: []
 };
 
-},{"../schemas.js":37}],21:[function(require,module,exports){
+},{"../schemas.js":39}],23:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5606,7 +5870,7 @@ module.exports.Errors = {
     FSERR_EADDRNOTAVAIL: 0x1004b
 };
 
-},{"../schemas.js":37}],22:[function(require,module,exports){
+},{"../schemas.js":39}],24:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5643,7 +5907,7 @@ module.exports = {
 };
 
 
-},{"../schemas.js":37}],23:[function(require,module,exports){
+},{"../schemas.js":39}],25:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5686,7 +5950,7 @@ module.exports = {
     evs: []
 };
 
-},{"../schemas.js":37}],24:[function(require,module,exports){
+},{"../schemas.js":39}],26:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5735,7 +5999,7 @@ module.exports.Modes = {
     MM_VERIFY: 2 /*  verify data */
 };
 
-},{"../schemas.js":37}],25:[function(require,module,exports){
+},{"../schemas.js":39}],27:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5769,7 +6033,7 @@ module.exports = {
     evs: []
 };
 
-},{"../schemas.js":37}],26:[function(require,module,exports){
+},{"../schemas.js":39}],28:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5804,7 +6068,7 @@ module.exports = {
 };
 
 
-},{"../schemas.js":37}],27:[function(require,module,exports){
+},{"../schemas.js":39}],29:[function(require,module,exports){
 /**
  * Copyright (c) 2017 Benoit Perrin
  *
@@ -5845,7 +6109,7 @@ module.exports = {
     ]
 };
 
-},{"../schemas.js":37}],28:[function(require,module,exports){
+},{"../schemas.js":39}],30:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5933,7 +6197,7 @@ module.exports = {
     ]
 };
 
-},{"../schemas.js":37}],29:[function(require,module,exports){
+},{"../schemas.js":39}],31:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -5969,7 +6233,7 @@ module.exports = {
     evs: []
 };
 
-},{"../schemas.js":37}],30:[function(require,module,exports){
+},{"../schemas.js":39}],32:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -6092,7 +6356,7 @@ module.exports.ResumeModes = {
     RM_UNDEF: 19
 };
 
-},{"../schemas.js":37}],31:[function(require,module,exports){
+},{"../schemas.js":39}],33:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -6133,7 +6397,7 @@ module.exports = {
     evs: []
 };
 
-},{"../schemas.js":37}],32:[function(require,module,exports){
+},{"../schemas.js":39}],34:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -6177,7 +6441,7 @@ module.exports = {
     ]
 }
 
-},{"../schemas.js":37}],33:[function(require,module,exports){
+},{"../schemas.js":39}],35:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -6263,7 +6527,7 @@ module.exports.SymbolClass = {
     variant: 9 // A member of a variant part of a structure (since TCF 1.3)
 };
 
-},{"../schemas.js":37}],34:[function(require,module,exports){
+},{"../schemas.js":39}],36:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -6301,7 +6565,7 @@ module.exports = {
     evs: []
 };
 
-},{"../schemas.js":37}],35:[function(require,module,exports){
+},{"../schemas.js":39}],37:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -6350,7 +6614,7 @@ module.exports = {
     ] 
 }
 
-},{"../schemas.js":37}],36:[function(require,module,exports){
+},{"../schemas.js":39}],38:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -6449,7 +6713,7 @@ module.exports = function  Proxy(svcInterface, c) {
 }
 
 
-},{}],37:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -6499,7 +6763,7 @@ module.exports = {
     }
 }
 
-},{}],38:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 /**
  * Top level TCF library module
  * @license
@@ -6568,7 +6832,7 @@ module.exports.BroadcastGroup = require('./broadcast.js').BroadcastGroup;
 module.exports.Server = require('./server.js').Server;
 module.exports.Interface = require('./services/interfaces.js').Interface;
 
-},{"./broadcast.js":8,"./client.js":13,"./options":14,"./protocol.js":16,"./schemas.js":17,"./server.js":2,"./service.js":18,"./services/interfaces.js":19,"./transports.js":9}],39:[function(require,module,exports){
+},{"./broadcast.js":10,"./client.js":15,"./options":16,"./protocol.js":18,"./schemas.js":19,"./server.js":2,"./service.js":20,"./services/interfaces.js":21,"./transports.js":11}],41:[function(require,module,exports){
 /**
  * Copyright (c) 2016 Wind River Systems
  *
@@ -6608,5 +6872,5 @@ module.exports = {
     assert: assert
 };
 
-},{"uuid":7}]},{},[38])(38)
+},{"uuid":9}]},{},[40])(40)
 });

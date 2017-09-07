@@ -1,7 +1,7 @@
 /**
- * TCF Channel inteface
+ * TCF Channel interface
  * @license
- * Copyright (c) 2016 Wind River Systems
+ * Copyright (c) 2016-2017 Wind River Systems
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,7 @@ if (typeof global !== 'undefined') {
 
 var promise = Promise;
 var utils = require('./utils.js');
+var Timers = require('timers');
 
 var channelId = 0;
 
@@ -157,7 +158,7 @@ function Channel(protocol) {
         else {
             obuf[owrite++] = ch;
         }
-        
+
         return 0;
     };
 
@@ -425,14 +426,14 @@ function Channel(protocol) {
         }
 
         if (log) console.log(JSONbig.stringify(msg));
-    };
+    }
 
     function updateMessageCount(buf) {
         var i;
         for (i = 0; i < buf.byteLength; i++) {
             switch (buf[i]) {
                 case 1: //EOM
-                    setTimeout(() => {
+                    Timers.setImmediate(() => {
 
                         try {
                             handleProtocolMessage();
@@ -441,13 +442,13 @@ function Channel(protocol) {
                             sendEofAndClose();
                         }
 
-                    }, 0);
+                    });
                     messageCount++;
                     break;
                 case 2: //EOS
                     // Channel closed by remote peer
                     eof = true;
-                    setTimeout(() => {
+                    Timers.setImmediate(() => {
                         channel.close();
                     });
                     break;
@@ -546,9 +547,9 @@ function Channel(protocol) {
             else {
                 replyHandlers.splice(idx, 1);
             }
-        })
+        });
     }
-    
+
     function onClosed() {
         state = ChannelState.Disconnected;
         channelClosed();
